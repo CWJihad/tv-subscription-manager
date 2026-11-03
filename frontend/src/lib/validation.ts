@@ -1,6 +1,6 @@
 import { DURATION_OPTIONS } from "@/lib/constants";
 import { isValidISODate } from "@/lib/dates";
-import type { CreateCustomerInput, CustomerFieldErrors, UpdateCustomerInput } from "@/types";
+import type { CreateCustomerInput, CustomerFieldErrors, UpdateCustomerInput, LoginInput, LoginFieldErrors } from "@/types";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_CHARS_RE = /^\+?[\d\s()-]+$/;
@@ -36,5 +36,17 @@ export function validateCreateCustomer(input: CreateCustomerInput): CustomerFiel
 }
 
 export function hasErrors(errors: CustomerFieldErrors): boolean {
+  return Object.keys(errors).length > 0;
+}
+
+/** Mock rules: both fields required (whitespace-only counts as empty). No email format check, because the first field also accepts a username. */
+export function validateLogin(input: LoginInput): LoginFieldErrors {
+  const errors: LoginFieldErrors = {};
+  if (!input.identifier.trim()) errors.identifier = "Enter your email or username";
+  if (!input.password.trim()) errors.password = "Enter your password";
+  return errors;
+}
+
+export function hasLoginErrors(errors: LoginFieldErrors): boolean {
   return Object.keys(errors).length > 0;
 }

@@ -1,11 +1,11 @@
-// getCustomers, getCustomer, createCustomer, updateCustomer, renewCustomer, deleteCustomer, getDashboardSummary
+// getCustomers, getCustomer, createCustomer, updateCustomer, renewCustomer, deleteCustomer, getDashboardSummary, login
 
 import { countByStatus, sortExpired, sortExpiring } from "@/lib/customer-list";
 import { DURATION_OPTIONS } from "@/lib/constants";
 import { addMonths } from "@/lib/dates";
 import { withStatus } from "@/lib/status";
 import { getToday } from "@/lib/today";
-import { hasErrors, validateContact, validateCreateCustomer } from "@/lib/validation";
+import { hasErrors, hasLoginErrors, validateLogin, validateContact, validateCreateCustomer } from "@/lib/validation";
 import type {
   CreateCustomerInput,
   Customer,
@@ -14,6 +14,7 @@ import type {
   DurationMonths,
   Renewal,
   UpdateCustomerInput,
+  LoginInput
 } from "@/types";
 import { ApiError } from "./errors";
 import {
@@ -156,4 +157,15 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     expiring: sortExpiring(customers.filter((customer) => customer.status === "expiring")),
     expired: sortExpired(customers.filter((customer) => customer.status === "expired")),
   };
+}
+
+/** Mock login: any non-empty identifier and password succeeds. The real backend replaces only this function. */
+export async function login(input: LoginInput): Promise<void> {
+  await simulateLatency();
+  if (shouldFailSave()) throw new ApiError("UNKNOWN", "Could not log in. Please try again.");
+
+  const errors = validateLogin(input);
+  if (hasLoginErrors(errors)) {
+    throw new ApiError("VALIDATION", "Enter your email or username and password.");
+  }
 }

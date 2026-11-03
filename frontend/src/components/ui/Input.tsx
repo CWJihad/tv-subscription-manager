@@ -1,17 +1,30 @@
-import { useId, type ComponentPropsWithRef } from "react";
+import { useId, type ComponentPropsWithRef, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-export interface InputProps extends Omit<ComponentPropsWithRef<"input">, "size"> {
+export interface InputProps extends Omit<
+  ComponentPropsWithRef<"input">,
+  "size"
+> {
   label?: string;
   leftIcon?: LucideIcon;
+  rightElement?: ReactNode;
   error?: string;
   hint?: string;
   wrapperClassName?: string;
 }
 
 export function Input({
-  label, leftIcon: LeftIcon, error, hint, wrapperClassName, className, id, disabled, ...rest
+  label,
+  leftIcon: LeftIcon,
+  rightElement,
+  error,
+  hint,
+  wrapperClassName,
+  className,
+  id,
+  disabled,
+  ...rest
 }: InputProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
@@ -21,7 +34,10 @@ export function Input({
   return (
     <div className={cn("flex flex-col gap-1.5", wrapperClassName)}>
       {label && (
-        <label htmlFor={inputId} className="text-[13px] font-medium leading-[18px] text-neutral-700">
+        <label
+          htmlFor={inputId}
+          className="text-[13px] font-medium leading-[18px] text-neutral-700"
+        >
           {label}
         </label>
       )}
@@ -43,6 +59,7 @@ export function Input({
             "focus:outline-none focus:ring-2 focus:ring-primary-500/30",
             "disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500 disabled:hover:border-neutral-200",
             LeftIcon ? "pl-11" : "pl-4",
+            rightElement ? "pr-12" : "pr-4",
             error
               ? "border-danger-600 focus:border-danger-600 focus:ring-danger-600/20"
               : "border-neutral-200 focus:border-primary-500",
@@ -50,9 +67,20 @@ export function Input({
           )}
           {...rest}
         />
+        {rightElement && (
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+            {rightElement}
+          </div>
+        )}
       </div>
       {help && (
-        <p id={helpId} className={cn("text-xs leading-[18px]", error ? "text-danger-700" : "text-neutral-500")}>
+        <p
+          id={helpId}
+          className={cn(
+            "text-xs leading-[18px]",
+            error ? "text-danger-700" : "text-neutral-500",
+          )}
+        >
           {help}
         </p>
       )}

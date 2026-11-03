@@ -8,7 +8,7 @@ export function UserMenu() {
     <div className="flex items-center gap-3 border-t border-white/10 pt-4">
       <Avatar name={OWNER.name} size="md" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium leading-[22px] text-white">{OWNER.name}</p>
+        <p className="truncate text-sm font-medium leading-[22px] text-black">{OWNER.name}</p>
         <p className="truncate text-xs leading-[18px] text-neutral-400">{OWNER.role}</p>
       </div>
       <Link

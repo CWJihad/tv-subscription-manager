@@ -30,7 +30,7 @@ export function BrandLogo({
       height={40}
       priority
       onError={() => setFailed(true)}
-      className={`h-9 w-auto ${className}`}
+      className={`h-18 w-auto ${className}`}
     />
   );
 }
