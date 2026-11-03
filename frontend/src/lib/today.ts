@@ -1,0 +1,1 @@
+// MOCK_TODAY + getToday() (the only place "today" is defined)
