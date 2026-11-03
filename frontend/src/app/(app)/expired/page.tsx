@@ -10,6 +10,7 @@ import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { searchCustomers } from "@/lib/customer-list";
 import { getToday } from "@/lib/today";
 import type { CustomerWithStatus } from "@/types";
+import { useCustomerModals } from "@/hooks/useCustomerModals";
 
 export default function ExpiredPage() {
   const router = useRouter();
@@ -19,6 +20,8 @@ export default function ExpiredPage() {
 
   const all = useMemo(() => summary?.expired ?? [], [summary]);
   const rows = useMemo(() => searchCustomers(all, query), [all, query]);
+
+  const { openRenew, openReminder, modals } = useCustomerModals(retry);
 
   const total = all.length;
   const subtitle =
@@ -31,8 +34,8 @@ export default function ExpiredPage() {
   const openCustomer = (customer: CustomerWithStatus) =>
     router.push(`/customers/${customer.id}`);
   // TODO (task 9): open Renew / Send reminder modals instead.
-  const handleMessage = openCustomer;
-  const handleRenew = openCustomer;
+  const handleMessage = openReminder;
+  const handleRenew = openRenew;
 
   return (
     <>
@@ -69,6 +72,7 @@ export default function ExpiredPage() {
           />
         )}
       </div>
+      {modals}
     </>
   );
 }

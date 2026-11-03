@@ -11,6 +11,7 @@ import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { getExpiringBucket, searchCustomers } from "@/lib/customer-list";
 import { getToday } from "@/lib/today";
 import type { CustomerWithStatus, ExpiringRange } from "@/types";
+import { useCustomerModals } from "@/hooks/useCustomerModals";
 
 export default function ExpiringPage() {
   const router = useRouter();
@@ -20,6 +21,9 @@ export default function ExpiringPage() {
   const [range, setRange] = useState<ExpiringRange>("all");
 
   const all = useMemo(() => summary?.expiring ?? [], [summary]);
+
+    const { openRenew, openReminder, modals } = useCustomerModals(retry);
+  
 
   const rangeCounts = useMemo(() => {
     const result: Record<ExpiringRange, number> = {
@@ -60,8 +64,8 @@ export default function ExpiringPage() {
   const openCustomer = (customer: CustomerWithStatus) =>
     router.push(`/customers/${customer.id}`);
   // TODO (task 9): open Send reminder / Renew modals instead.
-  const handleReminder = openCustomer;
-  const handleRenew = openCustomer;
+  const handleReminder = openReminder;
+  const handleRenew = openRenew;
 
   return (
     <>
@@ -116,6 +120,7 @@ export default function ExpiringPage() {
           />
         )}
       </div>
+      {modals}
     </>
   );
 }

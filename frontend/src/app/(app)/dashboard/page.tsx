@@ -17,6 +17,7 @@ import { parseISODate } from "@/lib/dates";
 import { formatFullDate } from "@/lib/format";
 import { getToday } from "@/lib/today";
 import type { CustomerWithStatus, DashboardSummary } from "@/types";
+import { useCustomerModals } from "@/hooks/useCustomerModals";
 
 function formatMobileLabel(iso: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -37,30 +38,33 @@ export default function DashboardPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
 
+  
   useEffect(() => {
-    let cancelled = false;
-    getDashboardSummary()
+      let cancelled = false;
+      getDashboardSummary()
       .then((data) => {
-        if (cancelled) return;
-        setSummary(data);
-        setFailed(false);
-        setLoading(false);
-      })
-      .catch(() => {
+          if (cancelled) return;
+          setSummary(data);
+          setFailed(false);
+          setLoading(false);
+        })
+    .catch(() => {
         if (cancelled) return;
         setFailed(true);
         setLoading(false);
-      });
+    });
     return () => {
-      cancelled = true;
+        cancelled = true;
     };
-  }, [reloadKey]);
+}, [reloadKey]);
 
-  const retry = () => {
+const retry = () => {
     setLoading(true);
     setFailed(false);
     setReloadKey((key) => key + 1);
-  };
+};
+
+  const { openReminder, modals } = useCustomerModals(retry);
 
   const expiring = useMemo(
     () => (summary ? searchCustomers(summary.expiring, query) : []),
@@ -70,19 +74,25 @@ export default function DashboardPage() {
     () => (summary ? searchCustomers(summary.expired, query) : []),
     [summary, query],
   );
-  const attention = useMemo(() => [...expired, ...expiring], [expired, expiring]);
+  const attention = useMemo(
+      () => [...expired, ...expiring],
+      [expired, expiring],
+    );
 
-  const counts = summary?.counts;
-  const hasQuery = query.trim().length > 0;
-  const showBanner = !loading && !failed && summary !== null && summary.needsAttention > 0;
-
-  const openCustomer = (customer: CustomerWithStatus) =>
-    router.push(`/customers/${customer.id}`);
-  // TODO (task 9): open the Send reminder modal instead.
-  const handleReminder = (customer: CustomerWithStatus) => openCustomer(customer);
-
-  const statValue = (value: number | undefined) => (loading || value === undefined ? "—" : value);
-
+    const counts = summary?.counts;
+    const hasQuery = query.trim().length > 0;
+    const showBanner =
+    !loading && !failed && summary !== null && summary.needsAttention > 0;
+    
+    const openCustomer = (customer: CustomerWithStatus) =>
+        router.push(`/customers/${customer.id}`);
+    
+    // TODO (task 9): open the Send reminder modal instead.
+    const handleReminder = openReminder;
+    
+    const statValue = (value: number | undefined) =>
+        loading || value === undefined ? "—" : value;
+    
   return (
     <>
       <PageHeader
@@ -121,7 +131,8 @@ export default function DashboardPage() {
               </ButtonLink>
             }
           >
-            {summary.counts.expiring} expire within 10 days and {summary.counts.expired}{" "}
+            {summary.counts.expiring} expire within 10 days and{" "}
+            {summary.counts.expired}{" "}
             {summary.counts.expired === 1 ? "has" : "have"} already expired.
           </AlertBanner>
         )}
@@ -193,6 +204,7 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+      {modals}
     </>
   );
 }
