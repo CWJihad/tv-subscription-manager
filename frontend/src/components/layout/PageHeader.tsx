@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { cn } from "@/lib/cn";
 
 interface PageHeaderSearch {
   value: string;
@@ -36,38 +37,31 @@ export function PageHeader({
             {title}
           </h1>
           {subtitle && (
-            <p
-              className={`mt-1 text-sm text-[#64748B] ${hideSubtitleOnMobile ? "hidden md:block" : ""}`}
-            >
+             <p className={cn("mt-1 text-sm leading-[22px] text-neutral-500", hideSubtitleOnMobile && "hidden md:block")}>
               {subtitle}
             </p>
           )}
         </div>
         {showAddCustomer && (
-          <Link
-            href="/customers/new"
-            aria-label="Add customer"
-            className="btn btn-primary btn-square h-11 min-h-11 w-11 rounded-[10px] md:hidden"
-          >
+          <ButtonLink href="/customers/new" iconOnly aria-label="Add customer" className="md:hidden">
             <Plus className="size-5" aria-hidden="true" />
-          </Link>
+          </ButtonLink>
         )}
       </div>
 
-      <div
-        className={`items-center gap-3 md:justify-end ${search ? "flex" : "hidden md:flex"}`}
-      >
+      <div className={cn("items-center gap-3 md:justify-end", search ? "flex" : "hidden md:flex")}>
         {search && (
           <SearchInput value={search.value} onChange={search.onChange} />
         )}
         {showAddCustomer && (
-          <Link
+          <ButtonLink
             href="/customers/new"
-            className="btn btn-primary hidden h-12 min-h-12 shrink-0 rounded-[10px] px-5 font-semibold md:inline-flex"
+            size="lg"
+            leftIcon={<Plus className="size-[18px]" aria-hidden="true" />}
+            className="hidden shrink-0 md:inline-flex"
           >
-            <Plus className="size-[18px]" aria-hidden="true" />
             Add Customer
-          </Link>
+          </ButtonLink>
         )}
       </div>
     </header>
