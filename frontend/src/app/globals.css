@@ -1,3 +1,107 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
+@plugin "daisyui/theme" {
+  name: "nigertoday";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #ffffff;
+  --color-base-200: #f8fafc;
+  --color-base-300: #e2e8f0;
+  --color-base-content: #334155;
+
+  --color-primary: #4f46e5;
+  --color-primary-content: #ffffff;
+  --color-secondary: #eef2ff;
+  --color-secondary-content: #4338ca;
+  --color-accent: #eef2ff;
+  --color-accent-content: #4338ca;
+  --color-neutral: #0f172a;
+  --color-neutral-content: #ffffff;
+
+  --color-info: #4f46e5;
+  --color-info-content: #ffffff;
+  --color-success: #16a34a;
+  --color-success-content: #ffffff;
+  --color-warning: #d97706;
+  --color-warning-content: #ffffff;
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 1rem;
+  --radius-field: 0.625rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* Colour Guide tokens (official). Status colours are ONLY for subscription status. */
+@theme {
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-900: #1e1b4b;
+
+  --color-neutral-0: #ffffff;
+  --color-neutral-25: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-700: #334155;
+  --color-neutral-900: #0f172a;
+
+  --color-success-50: #dcfce7;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+
+  --color-warning-50: #fef3c7;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  --color-danger-50: #fee2e2;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  /* Text Guide sizes (font size + line height). Weights are set with font-* classes. */
+  --text-display: 2.25rem;
+  --text-display--line-height: 2.75rem;
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 2.25rem;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.875rem;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.625rem;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.375rem;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.125rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.125rem;
+  --text-button: 0.875rem;
+  --text-button--line-height: 1.25rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-base-200 text-base-content font-sans text-body antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+}
