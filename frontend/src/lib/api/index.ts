@@ -25,6 +25,7 @@ import {
   shouldFailSave,
   simulateLatency,
 } from "./mock-store";
+import {emitDataChanged} from './events'
 
 export { ApiError } from "./errors";
 export type { ApiErrorCode } from "./errors";
@@ -79,6 +80,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     ],
   };
   setList([...getList(), customer]);
+  emitDataChanged();
   return toView(customer);
 }
 
@@ -100,6 +102,7 @@ export async function updateCustomer(
     phone: input.phone.trim(),
   };
   setList(list.map((item) => (item.id === id ? updated : item)));
+  emitDataChanged();
   return toView(updated);
 }
 
@@ -131,6 +134,7 @@ export async function renewCustomer(
     renewals: [...current.renewals, renewal],
   };
   setList(list.map((item) => (item.id === id ? updated : item)));
+  emitDataChanged()
   return toView(updated);
 }
 
@@ -139,6 +143,7 @@ export async function deleteCustomer(id: string): Promise<void> {
   const list = getList();
   requireCustomer(list, id);
   setList(list.filter((item) => item.id !== id));
+  emitDataChanged();
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
