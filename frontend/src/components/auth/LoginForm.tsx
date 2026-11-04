@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -8,6 +8,8 @@ import { ApiError, login } from "@/lib/api";
 import { hasLoginErrors, validateLogin } from "@/lib/validation";
 import type { LoginFieldErrors, LoginInput } from "@/types";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { hasSession } from "@/lib/session";
+import { MOCK_OWNER_EMAIL, MOCK_OWNER_PASSWORD } from "@/lib/api/index";
 
 const GENERIC_ERROR = "Could not log in. Please try again.";
 
@@ -51,12 +53,16 @@ export function LoginForm() {
     try {
       await login(values);
       // Keep the loading state on while the next page opens.
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : GENERIC_ERROR);
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (hasSession()) router.replace("/dashboard");
+  }, [router]);
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
@@ -110,6 +116,14 @@ export function LoginForm() {
       <Button type="submit" size="lg" fullWidth loading={loading}>
         Log in
       </Button>
+
+      <p className="mt-4 text-center text-sm leading-[18px] text-neutral-500">
+        Demo login:
+        <br />
+        email: {MOCK_OWNER_EMAIL}
+        <br />
+        pass: {MOCK_OWNER_PASSWORD}
+      </p>
     </form>
   );
 }

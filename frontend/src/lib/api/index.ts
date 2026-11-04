@@ -33,6 +33,7 @@ import {
   simulateLatency,
 } from "./mock-store";
 import { emitDataChanged } from "./events";
+import { setSession } from "@/lib/session";
 
 export { ApiError } from "./errors";
 export type { ApiErrorCode } from "./errors";
@@ -174,6 +175,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 }
 
 /** Mock login: any non-empty identifier and password succeeds. The real backend replaces only this function. */
+
+export const MOCK_OWNER_EMAIL = "cwjihad@gmail.com";
+export const MOCK_OWNER_PASSWORD = "cwjihad123";
+
 export async function login(input: LoginInput): Promise<void> {
   await simulateLatency();
   if (shouldFailSave())
@@ -186,4 +191,12 @@ export async function login(input: LoginInput): Promise<void> {
       "Enter your email or username and password.",
     );
   }
+
+  const idOk = input.identifier.trim().toLowerCase() === MOCK_OWNER_EMAIL;
+  const passOk = input.password === MOCK_OWNER_PASSWORD;
+  if (!idOk || !passOk) {
+    throw new ApiError("UNKNOWN", "Incorrect email or password.");
+  }
+
+  setSession();
 }

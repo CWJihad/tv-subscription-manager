@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, Clock, TriangleAlert, Users } from "lucide-react";
 import { DashboardExpiredPanel } from "@/components/customers/DashboardExpiredPanel";
@@ -11,13 +11,13 @@ import { AlertBanner } from "@/components/ui/AlertBanner";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { StatCard } from "@/components/ui/StatCard";
-import { getDashboardSummary } from "@/lib/api";
 import { searchCustomers } from "@/lib/customer-list";
 import { parseISODate } from "@/lib/dates";
 import { formatFullDate } from "@/lib/format";
 import { getToday } from "@/lib/today";
-import type { CustomerWithStatus, DashboardSummary } from "@/types";
+import type { CustomerWithStatus } from "@/types";
 import { useCustomerModals } from "@/hooks/useCustomerModals";
+import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 
 function formatMobileLabel(iso: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -31,39 +31,8 @@ function formatMobileLabel(iso: string): string {
 export default function DashboardPage() {
   const router = useRouter();
   const today = getToday();
-
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
-
-  
-  useEffect(() => {
-      let cancelled = false;
-      getDashboardSummary()
-      .then((data) => {
-          if (cancelled) return;
-          setSummary(data);
-          setFailed(false);
-          setLoading(false);
-        })
-    .catch(() => {
-        if (cancelled) return;
-        setFailed(true);
-        setLoading(false);
-    });
-    return () => {
-        cancelled = true;
-    };
-}, [reloadKey]);
-
-const retry = () => {
-    setLoading(true);
-    setFailed(false);
-    setReloadKey((key) => key + 1);
-};
-
+  const { summary, loading, failed, retry } = useDashboardSummary();
   const { openReminder, modals } = useCustomerModals(retry);
 
   const expiring = useMemo(
@@ -75,24 +44,24 @@ const retry = () => {
     [summary, query],
   );
   const attention = useMemo(
-      () => [...expired, ...expiring],
-      [expired, expiring],
-    );
+    () => [...expired, ...expiring],
+    [expired, expiring],
+  );
 
-    const counts = summary?.counts;
-    const hasQuery = query.trim().length > 0;
-    const showBanner =
+  const counts = summary?.counts;
+  const hasQuery = query.trim().length > 0;
+  const showBanner =
     !loading && !failed && summary !== null && summary.needsAttention > 0;
-    
-    const openCustomer = (customer: CustomerWithStatus) =>
-        router.push(`/customers/${customer.id}`);
-    
-    // TODO (task 9): open the Send reminder modal instead.
-    const handleReminder = openReminder;
-    
-    const statValue = (value: number | undefined) =>
-        loading || value === undefined ? "—" : value;
-    
+
+  const openCustomer = (customer: CustomerWithStatus) =>
+    router.push(`/customers/${customer.id}`);
+
+  // TODO (task 9): open the Send reminder modal instead.
+  const handleReminder = openReminder;
+
+  const statValue = (value: number | undefined) =>
+    loading || value === undefined ? "—" : value;
+
   return (
     <>
       <PageHeader

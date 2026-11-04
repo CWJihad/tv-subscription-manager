@@ -6,6 +6,7 @@ import { LogOut, X } from "lucide-react";
 import { MORE_ITEMS } from "@/lib/nav";
 import type { NavCounts } from "@/lib/nav-counts";
 import { NavCountBadge } from "@/components/ui/NavCountBadge";
+import { useLogout } from "@/hooks/useLogout";
 
 interface MoreSheetProps {
   dialogRef: RefObject<HTMLDialogElement | null>;
@@ -17,6 +18,7 @@ const rowClass =
 
 export function MoreSheet({ dialogRef, counts }: MoreSheetProps) {
   const close = () => dialogRef.current?.close();
+  const logout = useLogout();
 
   return (
     <dialog
@@ -62,10 +64,17 @@ export function MoreSheet({ dialogRef, counts }: MoreSheetProps) {
             );
           })}
           <li>
-            <Link href="/login" onClick={close} className={rowClass}>
+            <button
+              type="button"
+              onClick={() => {
+                close();
+                logout();
+              }}
+              className={`${rowClass} w-full text-left`}
+            >
               <LogOut className="size-5 text-[#64748B]" aria-hidden="true" />
               <span className="flex-1">Log out</span>
-            </Link>
+            </button>
           </li>
         </ul>
       </div>
