@@ -5,7 +5,13 @@ import { DURATION_OPTIONS } from "@/lib/constants";
 import { addMonths } from "@/lib/dates";
 import { withStatus } from "@/lib/status";
 import { getToday } from "@/lib/today";
-import { hasErrors, hasLoginErrors, validateLogin, validateContact, validateCreateCustomer } from "@/lib/validation";
+import {
+  hasErrors,
+  hasLoginErrors,
+  validateLogin,
+  validateContact,
+  validateCreateCustomer,
+} from "@/lib/validation";
 import type {
   CreateCustomerInput,
   Customer,
@@ -14,7 +20,7 @@ import type {
   DurationMonths,
   Renewal,
   UpdateCustomerInput,
-  LoginInput
+  LoginInput,
 } from "@/types";
 import { ApiError } from "./errors";
 import {
@@ -26,7 +32,7 @@ import {
   shouldFailSave,
   simulateLatency,
 } from "./mock-store";
-import {emitDataChanged} from './events'
+import { emitDataChanged } from "./events";
 
 export { ApiError } from "./errors";
 export type { ApiErrorCode } from "./errors";
@@ -53,12 +59,15 @@ export async function getCustomer(id: string): Promise<CustomerWithStatus> {
   return toView(requireCustomer(getList(), id));
 }
 
-export async function createCustomer(input: CreateCustomerInput): Promise<CustomerWithStatus> {
+export async function createCustomer(
+  input: CreateCustomerInput,
+): Promise<CustomerWithStatus> {
   await simulateLatency();
   if (shouldFailSave()) throw new ApiError("UNKNOWN", VALIDATION_MESSAGE);
 
   const fieldErrors = validateCreateCustomer(input);
-  if (hasErrors(fieldErrors)) throw new ApiError("VALIDATION", VALIDATION_MESSAGE, fieldErrors);
+  if (hasErrors(fieldErrors))
+    throw new ApiError("VALIDATION", VALIDATION_MESSAGE, fieldErrors);
 
   const expiryDate = addMonths(input.startDate, input.durationMonths);
   const customer: Customer = {
@@ -94,7 +103,8 @@ export async function updateCustomer(
   const current = requireCustomer(list, id);
 
   const fieldErrors = validateContact(input);
-  if (hasErrors(fieldErrors)) throw new ApiError("VALIDATION", VALIDATION_MESSAGE, fieldErrors);
+  if (hasErrors(fieldErrors))
+    throw new ApiError("VALIDATION", VALIDATION_MESSAGE, fieldErrors);
 
   const updated: Customer = {
     ...current,
@@ -135,7 +145,7 @@ export async function renewCustomer(
     renewals: [...current.renewals, renewal],
   };
   setList(list.map((item) => (item.id === id ? updated : item)));
-  emitDataChanged()
+  emitDataChanged();
   return toView(updated);
 }
 
@@ -154,18 +164,26 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   return {
     counts,
     needsAttention: counts.expiring + counts.expired,
-    expiring: sortExpiring(customers.filter((customer) => customer.status === "expiring")),
-    expired: sortExpired(customers.filter((customer) => customer.status === "expired")),
+    expiring: sortExpiring(
+      customers.filter((customer) => customer.status === "expiring"),
+    ),
+    expired: sortExpired(
+      customers.filter((customer) => customer.status === "expired"),
+    ),
   };
 }
 
 /** Mock login: any non-empty identifier and password succeeds. The real backend replaces only this function. */
 export async function login(input: LoginInput): Promise<void> {
   await simulateLatency();
-  if (shouldFailSave()) throw new ApiError("UNKNOWN", "Could not log in. Please try again.");
+  if (shouldFailSave())
+    throw new ApiError("UNKNOWN", "Could not log in. Please try again.");
 
   const errors = validateLogin(input);
   if (hasLoginErrors(errors)) {
-    throw new ApiError("VALIDATION", "Enter your email or username and password.");
+    throw new ApiError(
+      "VALIDATION",
+      "Enter your email or username and password.",
+    );
   }
 }
