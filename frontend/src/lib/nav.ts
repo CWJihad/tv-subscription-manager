@@ -1,9 +1,9 @@
 import {
   Clock,
   LayoutGrid,
-  Settings,
   TriangleAlert,
   Users,
+  Sun,
   type LucideIcon,
 } from "lucide-react";
 import type { NavCounts } from "@/lib/nav-counts";
@@ -30,7 +30,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: TriangleAlert,
     badge: { key: "expired", tone: "error" },
   },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings", label: "Settings", icon: Sun },
 ];
 
 const MOBILE_TAB_HREFS = ["/dashboard", "/customers", "/expiring"];
