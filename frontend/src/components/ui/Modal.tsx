@@ -45,6 +45,8 @@ export function Modal({ open, onClose, title, subtitle, icon: Icon, iconTone = "
               size === "md" ? "max-w-[500px]" : "max-w-[600px]",
             )}
           >
+            <div className="flex justify-between">
+            <div className="flex gap-3">
             {Icon && (
               <span
                 className={cn(
@@ -55,15 +57,19 @@ export function Modal({ open, onClose, title, subtitle, icon: Icon, iconTone = "
                 <Icon className="size-6" aria-hidden="true" />
               </span>
             )}
+            <span>
             <h2 id={titleId} className="text-lg font-semibold leading-[26px] text-neutral-900">
               {title}
             </h2>
             {subtitle && <p className="mt-0.5 text-xs leading-[18px] text-neutral-500">{subtitle}</p>}
-            {children && <div className="mt-6">{children}</div>}
-            {footer && <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">{footer}</div>}
-            <Button variant="ghost" size="sm" iconOnly aria-label="Close" onClick={onClose} className="absolute right-4 top-4">
+            </span>
+            </div>
+            <Button variant="ghost" size="sm" iconOnly aria-label="Close" onClick={onClose}>
               <X className="size-5" aria-hidden="true" />
             </Button>
+            </div>
+            {children && <div className="mt-6">{children}</div>}
+            {footer && <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">{footer}</div>}
           </div>
           <form method="dialog" className="modal-backdrop">
             <button type="submit" tabIndex={-1} aria-label="Close">close</button>
