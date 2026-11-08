@@ -82,7 +82,7 @@ export function DashboardExpiredPanel({
                       {customer.fullName}
                     </span>
                     <span className="block text-xs leading-[18px] text-danger-700">
-                      Expired {getExpiredAgoLabel(customer.daysLeft)}
+                      {getExpiredAgoLabel(customer.daysLeft)}
                     </span>
                   </span>
                 </button>
