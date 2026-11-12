@@ -1,0 +1,5 @@
+module.exports.authController = require('./auth.controller');
+module.exports.userController = require('./user.controller');
+module.exports.customerController = require('./customer.controller');
+module.exports.renewalController = require('./renewal.controller');
+module.exports.healthController = require('./health.controller');

@@ -1,0 +1,47 @@
+{
+  "name": "nigertoday-tv-backend",
+  "version": "1.0.0",
+  "description": "REST API for the Nigertoday TV Subscription Manager",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed": "node src/utils/seeder.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Md. Jihad Khan",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.1.3",
+    "he": "^1.2.0",
+    "helmet": "^7.0.0",
+    "http-status": "^1.7.3",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "luxon": "^3.7.2",
+    "mongoose": "^7.6.3",
+    "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.7",
+    "passport": "^0.6.0",
+    "passport-jwt": "^4.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "validator": "^13.11.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
