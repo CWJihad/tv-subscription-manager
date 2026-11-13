@@ -1,7 +1,10 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
-const bcrypt = require("bcryptjs");
 const { toJSON, paginate } = require("./plugins");
+const { DURATION_OPTIONS } = require("../config/business");
+
+const normalizeEmail = (value) =>
+  typeof value === "string" && value.trim() ? value.trim().toLowerCase() : null;
 
 const customerSchema = mongoose.Schema(
   {
@@ -9,85 +12,32 @@ const customerSchema = mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      default: null,
+      minlength: 2,
+      maxlength: 80,
     },
-    phone: {
-        type: String,
-        required: true,
-    },
+    phone: { type: String, required: true, unique: true, trim: true }, // normalized E.164
     email: {
       type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      lowercase: true,
-      validate(value) {
-        if (!validator.isEmail(value)) {
-          throw new Error("Invalid email");
-        }
+      default: null,
+      set: normalizeEmail,
+      validate: {
+        validator: (value) => !value || validator.isEmail(value),
+        message: "Invalid email",
       },
     },
-    password: {
-      type: String,
-      required: false,
-      trim: true,
-      minlength: 8,
-      validate(value) {
-        if (!value.match(/\d/) || !value.match(/[a-zA-Z]/)) {
-          throw new Error(
-            "Password must contain at least one letter and one number"
-          );
-        }
-      },
-      private: true,
-    },
-    startDate: {
-        type: Date,
-        required: false,
-        default: null
-    },
+    startDate: { type: Date, required: true }, // start of the CURRENT period
     durationMonths: {
-        type: Number,
-        required: false,
-        default: null
-    },
-    expiredAt: {
-        type: Date,
-        required: false,
-        default: null
-    },
-    isDeleted: {
-      type: Boolean,
-      default: false
-    }
-    },
-  {
-    timestamps: true,
-  }
+      type: Number,
+      enum: [...DURATION_OPTIONS],
+      required: true,
+    }, // CURRENT period
+    expiresAt: { type: Date, required: true, index: true },
+    remindersEnabled: { type: Boolean, default: true },
+  },
+  { timestamps: true },
 );
 
-// add plugin that converts mongoose to json
 customerSchema.plugin(toJSON);
 customerSchema.plugin(paginate);
 
-customerSchema.statics.isEmailTaken = async function (email, excludeUserId) {
-  const customer = await this.findOne({ email, _id: { $ne: excludeUserId } });
-  return !!customer;
-};
-
-customerSchema.methods.isPasswordMatch = async function (password) {
-  const customer = this;
-  return bcrypt.compare(password, customer.password);
-};
-
-customerSchema.pre("save", async function (next) {
-  const customer = this;
-  if (customer.isModified("password")) {
-    customer.password = await bcrypt.hash(customer.password, 8);
-  }
-  next();
-});
-
-const Customer = mongoose.model("Customer", customerSchema);
-
-module.exports = Customer;
+module.exports = mongoose.model("Customer", customerSchema);

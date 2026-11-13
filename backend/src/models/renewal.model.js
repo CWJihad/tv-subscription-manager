@@ -1,35 +1,30 @@
 const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
+const { DURATION_OPTIONS, RENEWAL_TYPES } = require("../config/business");
 
 const renewalSchema = mongoose.Schema(
   {
-    customer: {
+    customerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer"
+      ref: "Customer",
+      required: true,
+      index: true,
     },
-    periodStart: {
-      type: Date,
-    },
-    periodEnd: {
-      type: Date,
-    },
-    durationMonth: {
+    type: { type: String, enum: [...RENEWAL_TYPES], required: true },
+    periodStart: { type: Date, required: true },
+    periodEnd: { type: Date, required: true },
+    durationMonths: {
       type: Number,
-    },
-    type: {
-      type: String,
-      enum: ['initial', 'renewal']
+      enum: [...DURATION_OPTIONS],
+      required: true,
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
-// add plugin that converts mongoose to json
+renewalSchema.index({ customerId: 1, periodStart: 1 });
+
 renewalSchema.plugin(toJSON);
 renewalSchema.plugin(paginate);
 
-const Renewal = mongoose.model("Renewal", renewalSchema);
-
-module.exports = Renewal;
+module.exports = mongoose.model("Renewal", renewalSchema);

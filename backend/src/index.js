@@ -3,21 +3,22 @@ const app = require("./app");
 const config = require("./config/config");
 const logger = require("./config/logger");
 
-// My Local IP Address
-const myIp = process.env.BACKEND_IP;
-
 let server;
-mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
-  logger.info("Connected to MongoDB");
-  server = app.listen(config.port, myIp, () => {
-    // logger.info(`Listening to port ${config.port}`);
-    logger.info(`Listening to ip http://${myIp}:${config.port}`);
-  });
 
-  server.listen(config.port, process.env.BACKEND_IP, () => {
-    // logger.info(`Socket IO listening to port ${config.port}`);
+const listenArgs = config.host ? [config.port, config.host] : [config.port];
+
+mongoose
+  .connect(config.mongoose.url, config.mongoose.options)
+  .then(() => {
+    logger.info("Connected to MongoDB");
+    server = app.listen(...listenArgs, () => {
+      logger.info(`Listening on ${config.host}:${config.port}`);
+    });
+  })
+  .catch((error) => {
+    logger.error(error);
+    process.exit(1);
   });
-});
 
 const exitHandler = () => {
   if (server) {
@@ -41,6 +42,8 @@ process.on("unhandledRejection", unexpectedErrorHandler);
 process.on("SIGTERM", () => {
   logger.info("SIGTERM received");
   if (server) {
-    server.close();
+    server.close(() => process.exit(0));
+  } else {
+    process.exit(0);
   }
 });
