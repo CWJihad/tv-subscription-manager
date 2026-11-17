@@ -6,3 +6,4 @@ module.exports.paymentService = require('./payment.service');
 module.exports.settingsService = require('./settings.service');
 module.exports.metaService = require('./meta.service');
 module.exports.dashboardService = require('./dashboard.service');
+module.exports.renewalService = require('./renewal.service');

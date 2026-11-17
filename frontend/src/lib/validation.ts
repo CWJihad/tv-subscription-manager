@@ -5,7 +5,7 @@ import type { CreateCustomerInput, CustomerFieldErrors, UpdateCustomerInput, Log
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_CHARS_RE = /^\+?[\d\s()-]+$/;
 
-/** Name and phone required, email optional (default until the senior answers). */
+/** Name and phone required, email optional. Phone: 7-15 digits (the backend normalizes it to +8801XXXXXXXXX). */
 export function validateContact(input: UpdateCustomerInput): CustomerFieldErrors {
   const errors: CustomerFieldErrors = {};
   const name = input.fullName.trim();
@@ -39,10 +39,10 @@ export function hasErrors(errors: CustomerFieldErrors): boolean {
   return Object.keys(errors).length > 0;
 }
 
-/** Mock rules: both fields required (whitespace-only counts as empty). No email format check, because the first field also accepts a username. */
+/** Both fields required (whitespace-only counts as empty). No email format check here: the backend answers "Enter a valid email and password." */
 export function validateLogin(input: LoginInput): LoginFieldErrors {
   const errors: LoginFieldErrors = {};
-  if (!input.identifier.trim()) errors.identifier = "Enter your email or username";
+  if (!input.identifier.trim()) errors.identifier = "Enter your email";
   if (!input.password.trim()) errors.password = "Enter your password";
   return errors;
 }

@@ -1,14 +1,31 @@
-// MOCK_TODAY + getToday() (the only place "today" is defined)
+import { getMeta } from "@/lib/api";
 
-/** Development "today". Matches the design. */
-export const MOCK_TODAY = "2026-10-05";
+let cachedToday: string | null = null;
+let inFlight: Promise<string> | null = null;
 
 /**
  * The ONLY place that defines "today" (YYYY-MM-DD).
- * To switch to the real date later, replace the return line with:
- *   const now = new Date();
- *   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+ * The value comes from GET /meta and is cached by loadToday() (called by <TodayProvider>).
+ * Pages render only after <TodayProvider> finished loading, so this is always safe inside the app.
  */
 export function getToday(): string {
-  return MOCK_TODAY;
+  if (cachedToday === null) {
+    throw new Error("getToday() was called before today was loaded. Render inside <TodayProvider>.");
+  }
+  return cachedToday;
+}
+
+/** Fetches /meta (one request at a time) and caches `today`. */
+export function loadToday(): Promise<string> {
+  if (!inFlight) {
+    inFlight = getMeta()
+      .then((meta) => {
+        cachedToday = meta.today;
+        return meta.today;
+      })
+      .finally(() => {
+        inFlight = null;
+      });
+  }
+  return inFlight;
 }

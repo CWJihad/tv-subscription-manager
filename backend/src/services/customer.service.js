@@ -7,7 +7,10 @@ const { parseDateOnly } = require("../utils/dates");
 const { getToday } = require("../utils/today");
 const { getStatusRanges } = require("../utils/status");
 const { calcExpiry, getRenewalBase } = require("../utils/subscription");
-const { toCustomerListItem, toCustomerDetail } = require("../serializers/customer.serializer");
+const {
+  toCustomerListItem,
+  toCustomerDetail,
+} = require("../serializers/customer.serializer");
 const paymentService = require("./payment.service");
 
 const SORT_OPTIONS = {
@@ -21,8 +24,13 @@ const SORT_OPTIONS = {
 
 const SUBSCRIPTION_CHANGED = "Subscription was changed. Refresh and try again.";
 
-const isDuplicateKey = (error) => Boolean(error) && error.code === 11000;
-const phoneExists = () => new ApiError(httpStatus.CONFLICT, "Phone number already exists");
+const isPhoneDuplicate = (error) =>
+  Boolean(error) &&
+  error.code === 11000 &&
+  Boolean(error.keyPattern && error.keyPattern.phone);
+
+const phoneExists = () =>
+  new ApiError(httpStatus.CONFLICT, "Phone number already exists");
 
 const findCustomerOrThrow = async (id) => {
   const customer = await Customer.findById(id);
@@ -84,7 +92,9 @@ const listCustomers = async (query) => {
   });
   return {
     ...result,
-    results: result.results.map((customer) => toCustomerListItem(customer, today)),
+    results: result.results.map((customer) =>
+      toCustomerListItem(customer, today),
+    ),
   };
 };
 
@@ -92,7 +102,8 @@ const getCustomerStats = async ({ q } = {}) => {
   const today = getToday();
   const ranges = getStatusRanges(today);
   const base = buildSearchFilter(q);
-  const count = (expiresAt) => Customer.countDocuments(expiresAt ? { ...base, expiresAt } : base);
+  const count = (expiresAt) =>
+    Customer.countDocuments(expiresAt ? { ...base, expiresAt } : base);
 
   const [total, active, expiring, expired, b13, b47, b810] = await Promise.all([
     count(),
@@ -126,7 +137,9 @@ const createCustomer = async (body) => {
   const startDate = body.startDate ? parseDateOnly(body.startDate) : today;
   const expiresAt = calcExpiry(startDate, body.durationMonths);
   // Validate the payment before anything is written.
-  const paymentFields = body.payment ? paymentService.buildPaymentFields(body.payment, today) : null;
+  const paymentFields = body.payment
+    ? paymentService.buildPaymentFields(body.payment, today)
+    : null;
 
   let customer;
   try {
@@ -140,7 +153,7 @@ const createCustomer = async (body) => {
       createdAt: startDate, // customerSince = start date
     });
   } catch (error) {
-    if (isDuplicateKey(error)) throw phoneExists();
+    if (isPhoneDuplicate(error)) throw phoneExists();
     throw error;
   }
 
@@ -153,7 +166,11 @@ const createCustomer = async (body) => {
       durationMonths: body.durationMonths,
     });
     if (paymentFields) {
-      await paymentService.createPayment(customer._id, renewal._id, paymentFields);
+      await paymentService.createPayment(
+        customer._id,
+        renewal._id,
+        paymentFields,
+      );
     }
   } catch (error) {
     // No transactions (D9): undo what was created, then rethrow.
@@ -175,7 +192,8 @@ const updateCustomer = async (id, body) => {
 
   if (body.fullName !== undefined) updates.fullName = body.fullName;
   if (body.email !== undefined) updates.email = body.email;
-  if (body.remindersEnabled !== undefined) updates.remindersEnabled = body.remindersEnabled;
+  if (body.remindersEnabled !== undefined)
+    updates.remindersEnabled = body.remindersEnabled;
   if (body.phone !== undefined) {
     const phone = normalizePhone(body.phone);
     if (phone !== customer.phone) {
@@ -188,7 +206,7 @@ const updateCustomer = async (id, body) => {
   try {
     await customer.save();
   } catch (error) {
-    if (isDuplicateKey(error)) throw phoneExists();
+    if (isPhoneDuplicate(error)) throw phoneExists();
     throw error;
   }
   return buildDetail(customer, getToday());
@@ -202,7 +220,9 @@ const renewCustomer = async (id, body) => {
   const customer = await findCustomerOrThrow(id);
   const today = getToday();
   // Validate the payment before anything is written.
-  const paymentFields = body.payment ? paymentService.buildPaymentFields(body.payment, today) : null;
+  const paymentFields = body.payment
+    ? paymentService.buildPaymentFields(body.payment, today)
+    : null;
 
   const previous = {
     startDate: customer.startDate,
@@ -214,8 +234,14 @@ const renewCustomer = async (id, body) => {
 
   const updated = await Customer.findOneAndUpdate(
     { _id: customer._id, expiresAt: previous.expiresAt },
-    { $set: { startDate: base, durationMonths: body.durationMonths, expiresAt: newExpiry } },
-    { new: true }
+    {
+      $set: {
+        startDate: base,
+        durationMonths: body.durationMonths,
+        expiresAt: newExpiry,
+      },
+    },
+    { new: true },
   );
   if (!updated) {
     throw new ApiError(httpStatus.CONFLICT, SUBSCRIPTION_CHANGED);
@@ -231,13 +257,25 @@ const renewCustomer = async (id, body) => {
       durationMonths: body.durationMonths,
     });
     if (paymentFields) {
-      await paymentService.createPayment(customer._id, renewal._id, paymentFields);
+      await paymentService.createPayment(
+        customer._id,
+        renewal._id,
+        paymentFields,
+      );
     }
   } catch (error) {
     // No transactions (D9): restore the old period (only if still ours), delete what was created.
-    const cleanup = [Customer.updateOne({ _id: customer._id, expiresAt: newExpiry }, { $set: previous })];
+    const cleanup = [
+      Customer.updateOne(
+        { _id: customer._id, expiresAt: newExpiry },
+        { $set: previous },
+      ),
+    ];
     if (renewal) {
-      cleanup.push(Payment.deleteOne({ renewalId: renewal._id }), Renewal.deleteOne({ _id: renewal._id }));
+      cleanup.push(
+        Payment.deleteOne({ renewalId: renewal._id }),
+        Renewal.deleteOne({ _id: renewal._id }),
+      );
     }
     await Promise.allSettled(cleanup);
     throw error;

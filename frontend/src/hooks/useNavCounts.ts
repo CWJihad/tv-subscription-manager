@@ -2,17 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { getCustomers } from "@/lib/api";
+import { getCustomerStats } from "@/lib/api";
 import { onDataChanged } from "@/lib/api/events";
-import { getNavCounts, type NavCounts } from "@/lib/nav-counts";
-import { getToday } from "@/lib/today";
+import type { NavCounts } from "@/lib/nav-counts";
 
 const EMPTY_COUNTS: NavCounts = { expiring: 0, expired: 0 };
 
 async function loadCounts(): Promise<NavCounts> {
   try {
-    const customers = await getCustomers();
-    return getNavCounts(customers, getToday());
+    const stats = await getCustomerStats()
+    return {expiring: stats.expiring, expired: stats.expired}
   } catch {
     return EMPTY_COUNTS;
   }

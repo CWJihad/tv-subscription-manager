@@ -1,20 +1,23 @@
+"use client";
+
 import { LogOut } from "lucide-react";
-import { OWNER } from "@/lib/owner";
+import { useOwner } from "@/lib/owner";
 import { Avatar } from "@/components/ui/Avatar";
 import { useLogout } from "@/hooks/useLogout";
 
 export function UserMenu() {
   const logout = useLogout();
+  const owner = useOwner();
 
   return (
     <div className="flex items-center gap-3 border-t border-white/10 pt-4">
-      <Avatar name={OWNER.name} size="md" />
+      <Avatar name={owner.name} size="md" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium leading-[22px] text-black">
-          {OWNER.name}
+          {owner.name}
         </p>
         <p className="truncate text-xs leading-[18px] text-neutral-400">
-          {OWNER.role}
+          {owner.role}
         </p>
       </div>
       <button

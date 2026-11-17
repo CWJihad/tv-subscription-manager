@@ -6,3 +6,4 @@ module.exports.healthController = require('./health.controller');
 module.exports.settingsController = require('./settings.controller');
 module.exports.metaController = require('./meta.controller');
 module.exports.dashboardController = require('./dashboard.controller');
+module.exports.renewalController = require('./renewal.controller');

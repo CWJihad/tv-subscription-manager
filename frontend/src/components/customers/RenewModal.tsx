@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import { Check, RefreshCw } from "lucide-react";
+import { PaymentFields } from "@/components/customers/PaymentFields";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { RadioCard } from "@/components/ui/RadioCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { usePaymentForm } from "@/hooks/usePaymentForm";
+import { usePrices } from "@/hooks/usePrices";
 import { useToast } from "@/hooks/useToast";
-import { renewCustomer } from "@/lib/api";
-import { addMonths } from "@/lib/dates";
+import { ApiError, renewCustomer } from "@/lib/api";
 import { formatLongDate, getStatusLabel } from "@/lib/format";
+import { getRenewalPreview } from "@/lib/subscription";
+import { getToday } from "@/lib/today";
 import type { CustomerWithStatus, DurationMonths } from "@/types";
 
 const DURATIONS: DurationMonths[] = [3, 6, 12];
@@ -17,6 +21,7 @@ const DURATIONS: DurationMonths[] = [3, 6, 12];
 export interface RenewModalProps {
   customer: CustomerWithStatus | null;
   onClose: () => void;
+  /** Called after a renewal, and also after a 409 conflict so the parent can refetch its data. */
   onRenewed?: () => void;
 }
 
@@ -39,26 +44,41 @@ function RenewModalContent({
   const { show } = useToast();
   const [months, setMonths] = useState<DurationMonths>(3);
   const [saving, setSaving] = useState(false);
-  const newExpiry = addMonths(customer.expiryDate, months);
+
+  const { prices } = usePrices();
+  const payment = usePaymentForm({ prices, durationMonths: months, defaultEnabled: true });
+
+  // Same rule as the backend: start = max(current expiry, today), end = start + duration.
+  const preview = getRenewalPreview(customer.expiryDate, getToday(), months);
+  const startsFromToday = preview.from !== customer.expiryDate;
 
   const confirm = async () => {
+    if (saving) return;
+    if (!payment.validate()) return;
+
     setSaving(true);
     try {
-      await renewCustomer(customer.id, months);
+      await renewCustomer(customer.id, months, payment.toInput());
       show({
         type: "success",
         title: "Subscription renewed",
-        message: `${customer.fullName} · new expiry ${formatLongDate(newExpiry)}`,
+        message: `${customer.fullName} · new expiry ${formatLongDate(preview.to)}`,
       });
       onRenewed?.();
       onClose();
-    } catch {
+    } catch (error) {
       setSaving(false);
+      const apiError = error instanceof ApiError ? error : null;
       show({
         type: "error",
         title: "Could not renew subscription",
-        message: "Please try again.",
+        message: apiError?.message ?? "Please try again.",
       });
+      // 409: the subscription was changed elsewhere. The preview is stale, so refetch and close.
+      if (apiError?.status === 409) {
+        onRenewed?.();
+        onClose();
+      }
     }
   };
 
@@ -121,13 +141,24 @@ function RenewModalContent({
         <div className="rounded-xl bg-primary-50 px-4 py-3">
           <p className="text-xs leading-[18px] text-neutral-500">New expiration date</p>
           <p className="text-[22px] font-semibold leading-[30px] text-primary-600">
-            {formatLongDate(newExpiry)}
+            {formatLongDate(preview.to)}
           </p>
         </div>
 
-        <p className="text-xs leading-[18px] text-neutral-500">
-          Payment happens outside this app. Confirming only updates the customer record.
-        </p>
+        {startsFromToday && (
+          <p className="text-xs leading-[18px] text-neutral-500">
+            This subscription already expired, so the renewal starts today ({formatLongDate(preview.from)}).
+          </p>
+        )}
+
+        <PaymentFields
+          enabled={payment.enabled}
+          onEnabledChange={payment.setEnabled}
+          values={payment.values}
+          errors={payment.errors}
+          onChange={payment.setField}
+          disabled={saving}
+        />
       </div>
     </Modal>
   );

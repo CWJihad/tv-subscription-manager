@@ -7,16 +7,19 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { Button } from "@/components/ui/Button";
 import { FilterPill } from "@/components/ui/FilterPill";
-import { getCustomers } from "@/lib/api";
-import { countByStatus, filterByStatus, searchCustomers } from "@/lib/customer-list";
+import { getCustomers, getCustomerStats } from "@/lib/api";
+import { filterByStatus, searchCustomers } from "@/lib/customer-list";
 import { getToday } from "@/lib/today";
-import type { CustomerFilter, CustomerWithStatus } from "@/types";
+import type { CustomerFilter, CustomerWithStatus, StatusCounts } from "@/types";
+
+const EMPTY_COUNTS: StatusCounts = { total: 0, active: 0, expiring: 0, expired: 0 };
 
 export default function CustomersPage() {
   const router = useRouter();
   const today = getToday();
 
   const [customers, setCustomers] = useState<CustomerWithStatus[]>([]);
+  const [counts, setCounts] = useState<StatusCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -25,10 +28,17 @@ export default function CustomersPage() {
 
   useEffect(() => {
     let cancelled = false;
-    getCustomers()
-      .then((data) => {
+    // Rows come from the list, pill counts come from /customers/stats (exact, not capped at 100).
+    Promise.all([getCustomers(), getCustomerStats()])
+      .then(([list, stats]) => {
         if (cancelled) return;
-        setCustomers(data);
+        setCustomers(list);
+        setCounts({
+          total: stats.total,
+          active: stats.active,
+          expiring: stats.expiring,
+          expired: stats.expired,
+        });
         setFailed(false);
         setLoading(false);
       })
@@ -48,7 +58,6 @@ export default function CustomersPage() {
     setReloadKey((key) => key + 1);
   };
 
-  const counts = useMemo(() => countByStatus(customers), [customers]);
   const rows = useMemo(
     () => searchCustomers(filterByStatus(customers, filter), query),
     [customers, filter, query],

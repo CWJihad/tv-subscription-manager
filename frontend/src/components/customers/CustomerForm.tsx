@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Check, Mail, Phone, User } from "lucide-react";
+import { PaymentFields } from "@/components/customers/PaymentFields";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { RadioCard } from "@/components/ui/RadioCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { usePaymentForm } from "@/hooks/usePaymentForm";
+import { usePrices } from "@/hooks/usePrices";
 import { useToast } from "@/hooks/useToast";
-import { createCustomer, updateCustomer } from "@/lib/api";
+import { ApiError, createCustomer, updateCustomer } from "@/lib/api";
 import { validateCustomer } from "@/lib/customer-validation";
 import { addMonths, isValidISODate } from "@/lib/dates";
 import {
@@ -22,6 +25,7 @@ import { getToday } from "@/lib/today";
 import type { CustomerFieldErrors, CustomerWithStatus, DurationMonths } from "@/types";
 
 const DURATIONS: DurationMonths[] = [3, 6, 12];
+const SAVE_ERROR_FALLBACK = "Please check the details and try again.";
 
 export interface CustomerFormProps {
   mode: "create" | "edit";
@@ -41,6 +45,12 @@ export function CustomerForm({ mode, customer }: CustomerFormProps) {
   const [duration, setDuration] = useState<DurationMonths>(3);
   const [errors, setErrors] = useState<CustomerFieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  // Blocks a second submit immediately, before React re-renders the disabled button.
+  const submittingRef = useRef(false);
+
+  // Optional payment block (create mode only). Off by default. Prices load only in create mode.
+  const { prices } = usePrices(isCreate);
+  const payment = usePaymentForm({ prices, durationMonths: duration, defaultEnabled: false });
 
   const validStart = isValidISODate(startDate);
   const expiry = validStart ? addMonths(startDate, duration) : null;
@@ -55,8 +65,21 @@ export function CustomerForm({ mode, customer }: CustomerFormProps) {
 
   const backHref = isCreate || !customer ? "/customers" : `/customers/${customer.id}`;
 
+  const resetForm = () => {
+    setFullName("");
+    setPhone("");
+    setEmail("");
+    setStartDate(today);
+    setDuration(3);
+    setErrors({});
+    payment.reset();
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (submittingRef.current) return; // double submit
+    if (!isCreate && !customer) return;
+
     const found = validateCustomer({
       fullName,
       email,
@@ -64,37 +87,56 @@ export function CustomerForm({ mode, customer }: CustomerFormProps) {
       startDate: isCreate ? startDate : undefined,
     });
     setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    // Run both checks so every error shows at once.
+    const paymentOk = isCreate ? payment.validate() : true;
+    if (Object.keys(found).length > 0 || !paymentOk) return;
 
+    const savedName = fullName.trim();
+    const paymentInput = isCreate ? payment.toInput() : undefined;
+    submittingRef.current = true;
     setSubmitting(true);
+
     try {
       if (isCreate) {
         await createCustomer({
-          fullName: fullName.trim(),
+          fullName: savedName,
           email: email.trim(),
           phone: phone.trim(),
           startDate,
           durationMonths: duration,
+          ...(paymentInput ? { payment: paymentInput } : {}),
         });
-        show({ type: "success", title: "Customer added", message: fullName.trim() });
-        router.push("/customers");
       } else if (customer) {
         await updateCustomer(customer.id, {
-          fullName: fullName.trim(),
+          fullName: savedName,
           email: email.trim(),
           phone: phone.trim(),
         });
-        show({ type: "success", title: "Customer updated", message: fullName.trim() });
-        router.push(backHref);
       }
-    } catch {
-      setSubmitting(false);
+    } catch (error) {
+      const apiError = error instanceof ApiError ? error : null;
+      // Server-side field errors (duplicate phone, invalid phone, ...) go under the fields.
+      if (apiError?.fieldErrors) setErrors(apiError.fieldErrors);
       show({
         type: "error",
         title: "Could not save customer",
-        message: "Please check the details and try again.",
+        message: apiError?.message ?? SAVE_ERROR_FALLBACK,
       });
+      return; // finally still runs
+    } finally {
+      // Always runs: success, error or early return. The button can never stay loading.
+      submittingRef.current = false;
+      setSubmitting(false);
     }
+
+    // Saved. Nothing below can leave the button in the loading state.
+    if (isCreate) resetForm(); // also stops an accidental second click from creating a duplicate
+    router.push(backHref);
+    show({
+      type: "success",
+      title: isCreate ? "Customer added" : "Customer updated",
+      message: savedName,
+    });
   };
 
   const card = "rounded-2xl border border-neutral-200 bg-neutral-0 p-6";
@@ -126,7 +168,7 @@ export function CustomerForm({ mode, customer }: CustomerFormProps) {
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
               error={errors.phone}
-              placeholder="+1 555 019 2210"
+              placeholder="01712345678"
               type="tel"
               autoComplete="off"
             />
@@ -180,6 +222,15 @@ export function CustomerForm({ mode, customer }: CustomerFormProps) {
                   ))}
                 </div>
               </div>
+
+              <PaymentFields
+                enabled={payment.enabled}
+                onEnabledChange={payment.setEnabled}
+                values={payment.values}
+                errors={payment.errors}
+                onChange={payment.setField}
+                disabled={submitting}
+              />
             </div>
           </>
         )}

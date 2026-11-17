@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+// import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -9,7 +16,6 @@ import { hasLoginErrors, validateLogin } from "@/lib/validation";
 import type { LoginFieldErrors, LoginInput } from "@/types";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { hasSession } from "@/lib/session";
-import { MOCK_OWNER_EMAIL, MOCK_OWNER_PASSWORD } from "@/lib/api/index";
 
 const GENERIC_ERROR = "Could not log in. Please try again.";
 
@@ -26,6 +32,9 @@ export function LoginForm() {
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // True while /dashboard is opening. It turns false by itself when the page is open.
+  const [isNavigating, startNavigation] = useTransition();
+  const busy = loading || isNavigating;
 
   function handleChange(field: keyof LoginInput, value: string) {
     const next = { ...values, [field]: value };
@@ -36,29 +45,36 @@ export function LoginForm() {
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (loading) return;
+  event.preventDefault();
+  if (busy) return;
 
-    setSubmitted(true);
-    setFormError(null);
-    const fieldErrors = validateLogin(values);
-    setErrors(fieldErrors);
+  setSubmitted(true);
+  setFormError(null);
+  const fieldErrors = validateLogin(values);
+  setErrors(fieldErrors);
 
-    if (hasLoginErrors(fieldErrors)) {
-      (fieldErrors.identifier ? identifierRef : passwordRef).current?.focus();
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await login(values);
-      // Keep the loading state on while the next page opens.
-      router.replace("/dashboard");
-    } catch (error) {
-      setFormError(error instanceof ApiError ? error.message : GENERIC_ERROR);
-      setLoading(false);
-    }
+  if (hasLoginErrors(fieldErrors)) {
+    (fieldErrors.identifier ? identifierRef : passwordRef).current?.focus();
+    return;
   }
+
+  setLoading(true);
+  try {
+    await login(values);
+    // This page can stay mounted in the background, so never leave the password in state.
+    setValues({ identifier: "", password: "" });
+    setErrors({});
+    setSubmitted(false);
+    // isNavigating keeps the spinner on until /dashboard is open, then clears itself.
+    startNavigation(() => {
+      router.replace("/dashboard");
+    });
+    setLoading(false);
+  } catch (error) {
+    setFormError(error instanceof ApiError ? error.message : GENERIC_ERROR);
+    setLoading(false);
+  }
+}
 
   useEffect(() => {
     if (hasSession()) router.replace("/dashboard");
@@ -68,9 +84,9 @@ export function LoginForm() {
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <Input
         ref={identifierRef}
-        label="Email or username"
+        label="Email"
         name="identifier"
-        type="text"
+        type="email"
         placeholder="owner@email.com"
         autoComplete="username"
         autoCapitalize="none"
@@ -78,7 +94,7 @@ export function LoginForm() {
         value={values.identifier}
         onChange={(event) => handleChange("identifier", event.target.value)}
         error={errors.identifier}
-        disabled={loading}
+        disabled={busy}
       />
 
       <PasswordInput
@@ -90,7 +106,7 @@ export function LoginForm() {
         value={values.password}
         onChange={(event) => handleChange("password", event.target.value)}
         error={errors.password}
-        disabled={loading}
+        disabled={busy}
       />
 
       <div className="-mt-1 flex justify-end">
@@ -113,17 +129,9 @@ export function LoginForm() {
         </div>
       )}
 
-      <Button type="submit" size="lg" fullWidth loading={loading}>
+      <Button type="submit" size="lg" fullWidth loading={busy}>
         Log in
       </Button>
-
-      <p className="mt-4 text-center text-sm leading-[18px] text-neutral-500">
-        Demo login:
-        <br />
-        email: {MOCK_OWNER_EMAIL}
-        <br />
-        pass: {MOCK_OWNER_PASSWORD}
-      </p>
     </form>
   );
 }

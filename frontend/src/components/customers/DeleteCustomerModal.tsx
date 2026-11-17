@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/hooks/useToast";
-import { deleteCustomer } from "@/lib/api";
+import { ApiError, deleteCustomer } from "@/lib/api";
 import type { CustomerWithStatus } from "@/types";
 
 export interface DeleteCustomerModalProps {
@@ -39,9 +39,16 @@ function DeleteContent({
       await deleteCustomer(customer.id);
       show({ type: "success", title: "Customer deleted", message: customer.fullName });
       onDeleted();
-    } catch {
+    } catch (error) {
       setDeleting(false);
-      show({ type: "error", title: "Could not delete customer", message: "Please try again." });
+      const apiError = error instanceof ApiError ? error : null;
+      show({
+        type: "error",
+        title: "Could not delete customer",
+        message: apiError?.message ?? "Please try again.",
+      });
+      // Already deleted elsewhere: nothing left to delete, so leave this page.
+      if (apiError?.code === "NOT_FOUND") onDeleted();
     }
   };
 

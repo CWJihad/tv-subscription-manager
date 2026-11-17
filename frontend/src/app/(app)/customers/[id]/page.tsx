@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { ContactCard } from "@/components/customers/ContactCard";
 import { DeleteCustomerModal } from "@/components/customers/DeleteCustomerModal";
+import { RecordPaymentModal } from "@/components/customers/RecordPaymentModal";
+import { RenewalPayment } from "@/components/customers/RenewalPayment";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
@@ -21,7 +23,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useCustomerModals } from "@/hooks/useCustomerModals";
-import { getCustomer } from "@/lib/api";
+import { ApiError, getCustomer } from "@/lib/api";
 import { diffInDays } from "@/lib/dates";
 import {
   formatDuration,
@@ -31,7 +33,12 @@ import {
 } from "@/lib/format";
 import { getToday } from "@/lib/today";
 import type { StatusTone } from "@/lib/tones";
-import type { CustomerWithStatus, SubscriptionStatus } from "@/types";
+import type {
+  CustomerDetailWithStatus,
+  CustomerWithStatus,
+  Renewal,
+  SubscriptionStatus,
+} from "@/types";
 
 const statusTone: Record<SubscriptionStatus, StatusTone> = {
   active: "success",
@@ -63,14 +70,15 @@ export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const today = getToday();
 
-  const [customer, setCustomer] = useState<CustomerWithStatus | null>(null);
+  const [customer, setCustomer] = useState<CustomerDetailWithStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<CustomerWithStatus | null>(
     null,
   );
-  
+  const [paymentTarget, setPaymentTarget] = useState<Renewal | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,10 +87,12 @@ export default function CustomerDetailsPage() {
         if (cancelled) return;
         setCustomer(data);
         setFailed(false);
+        setNotFound(false);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (cancelled) return;
+        setNotFound(error instanceof ApiError && error.code === "NOT_FOUND");
         setFailed(true);
         setLoading(false);
       });
@@ -91,15 +101,11 @@ export default function CustomerDetailsPage() {
     };
   }, [id, reloadKey]);
 
-//   const { openRenew, openReminder, modals } = useCustomerModals(() =>
-//     setReloadKey((key) => key + 1),
-//   );
-
-const retry = () => {
+  const retry = () => {
     setLoading(true);
     setFailed(false);
     setReloadKey((key) => key + 1);
-};
+  };
 
   const { openRenew, openReminder, modals } = useCustomerModals(retry);
   const handleMessage = openReminder;
@@ -135,18 +141,18 @@ const retry = () => {
           <EmptyState
             icon={Users}
             // tone="neutral"
-            title="Customer not found"
-            text="This customer does not exist or could not be loaded."
+            title={notFound ? "Customer not found" : "Could not load customer"}
+            text={
+              notFound
+                ? "This customer does not exist or was deleted."
+                : "Something went wrong while loading this customer."
+            }
             action={
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setLoading(true);
-                  setReloadKey((key) => key + 1);
-                }}
-              >
-                Try again
-              </Button>
+              notFound ? undefined : (
+                <Button variant="outline" onClick={retry}>
+                  Try again
+                </Button>
+              )
             }
           />
         </div>
@@ -156,14 +162,12 @@ const retry = () => {
 
   const tone = statusTone[customer.status];
   const expired = customer.status === "expired";
+  // getExpiredAgoLabel() already starts with "Expired" ("Expired 2 days ago").
   const remaining = expired
-    ? `Expired ${getExpiredAgoLabel(customer.daysLeft)}`
+    ? getExpiredAgoLabel(customer.daysLeft)
     : getRemainingLabel(customer.daysLeft);
-  const badgeLabel = `${statusWord[customer.status]} · ${
-    expired
-      ? getExpiredAgoLabel(customer.daysLeft)
-      : getRemainingLabel(customer.daysLeft)
-  }`;
+  // getRemainingLabel() gives "2 days ago" for expired customers.
+  const badgeLabel = `${statusWord[customer.status]} · ${getRemainingLabel(customer.daysLeft)}`;
   const history = [...customer.renewals].reverse();
   const card = "rounded-2xl border border-neutral-200 bg-neutral-0 p-6";
 
@@ -269,23 +273,29 @@ const retry = () => {
               Renewal history
             </h2>
             <p className="mb-4 text-xs leading-[18px] text-neutral-500">
-              Every time this subscription was renewed
+              Every time this subscription was renewed, with its payment
             </p>
-            <ul className="space-y-4">
+            <ul className="space-y-5">
               {history.map((entry) => (
-                <li key={entry.id} className="flex items-center gap-3">
+                <li key={entry.id} className="flex items-start gap-3">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-success-50 text-success-600">
                     <Check className="size-4" aria-hidden="true" />
                   </span>
-                  <div>
-                    <p className="text-sm font-medium leading-[22px] text-neutral-900">
-                      {entry.kind === "first"
-                        ? `First subscription · ${formatDuration(entry.durationMonths)}`
-                        : `Renewed for ${formatDuration(entry.durationMonths)}`}
-                    </p>
-                    <p className="text-xs leading-[18px] text-neutral-500">
-                      {formatLongDate(entry.from)} → {formatLongDate(entry.to)}
-                    </p>
+                  <div className="min-w-0 space-y-1.5">
+                    <div>
+                      <p className="text-sm font-medium leading-[22px] text-neutral-900">
+                        {entry.kind === "first"
+                          ? `First subscription · ${formatDuration(entry.durationMonths)}`
+                          : `Renewed for ${formatDuration(entry.durationMonths)}`}
+                      </p>
+                      <p className="text-xs leading-[18px] text-neutral-500">
+                        {formatLongDate(entry.from)} → {formatLongDate(entry.to)}
+                      </p>
+                    </div>
+                    <RenewalPayment
+                      payment={entry.payment}
+                      onRecord={() => setPaymentTarget(entry)}
+                    />
                   </div>
                 </li>
               ))}
@@ -314,12 +324,20 @@ const retry = () => {
         </div>
       </div>
 
-      {modals}
       <DeleteCustomerModal
         customer={deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onDeleted={() => router.push("/customers")}
       />
+      {paymentTarget && (
+        <RecordPaymentModal
+          key={paymentTarget.id}
+          customerId={customer.id}
+          renewal={paymentTarget}
+          onClose={() => setPaymentTarget(null)}
+          onSaved={retry}
+        />
+      )}
       {modals}
     </>
   );

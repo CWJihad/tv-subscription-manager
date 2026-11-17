@@ -7,6 +7,7 @@ import { CopyButton } from "@/components/ui/CopyButton";
 import { FilterPill } from "@/components/ui/FilterPill";
 import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/ui/Textarea";
+import { useSettings } from "@/hooks/useSettings";
 import { useToast } from "@/hooks/useToast";
 import {
   REMINDER_TEMPLATES,
@@ -14,6 +15,7 @@ import {
   getReminderMessage,
   type ReminderTemplate,
 } from "@/lib/reminders";
+import { DEFAULT_TEMPLATES } from "@/lib/settings";
 import type { CustomerWithStatus } from "@/types";
 
 export interface ReminderModalProps {
@@ -34,16 +36,19 @@ function ReminderModalContent({
   onClose: () => void;
 }) {
   const { show } = useToast();
+  const { settings, loading } = useSettings();
   const [template, setTemplate] = useState<ReminderTemplate>(() =>
     getDefaultTemplate(customer.daysLeft),
   );
-  const [message, setMessage] = useState(() =>
-    getReminderMessage(customer, getDefaultTemplate(customer.daysLeft)),
-  );
+  // null = the user has not edited the text, so it follows the selected template.
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const templates = settings?.reminderTemplates ?? DEFAULT_TEMPLATES;
+  const message = draft ?? getReminderMessage(customer, template, templates);
 
   const pick = (value: ReminderTemplate) => {
     setTemplate(value);
-    setMessage(getReminderMessage(customer, value));
+    setDraft(null);
   };
 
   return (
@@ -89,7 +94,8 @@ function ReminderModalContent({
           label="Message"
           rows={5}
           value={message}
-          onChange={(event) => setMessage(event.target.value)}
+          hint={loading ? "Loading your saved templates…" : ""}
+          onChange={(event) => setDraft(event.target.value)}
         />
       </div>
     </Modal>

@@ -6,11 +6,11 @@ import { ExpiredTable } from "@/components/customers/ExpiredTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { Button } from "@/components/ui/Button";
+import { useCustomerModals } from "@/hooks/useCustomerModals";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
 import { searchCustomers } from "@/lib/customer-list";
 import { getToday } from "@/lib/today";
 import type { CustomerWithStatus } from "@/types";
-import { useCustomerModals } from "@/hooks/useCustomerModals";
 
 export default function ExpiredPage() {
   const router = useRouter();
@@ -23,7 +23,8 @@ export default function ExpiredPage() {
 
   const { openRenew, openReminder, modals } = useCustomerModals(retry);
 
-  const total = all.length;
+  // The list is capped at 100 rows, the count from the API is exact.
+  const total = summary?.counts.expired ?? all.length;
   const subtitle =
     loading || failed
       ? "Renew them or follow up"
@@ -33,7 +34,6 @@ export default function ExpiredPage() {
 
   const openCustomer = (customer: CustomerWithStatus) =>
     router.push(`/customers/${customer.id}`);
-  // TODO (task 9): open Renew / Send reminder modals instead.
   const handleMessage = openReminder;
   const handleRenew = openRenew;
 

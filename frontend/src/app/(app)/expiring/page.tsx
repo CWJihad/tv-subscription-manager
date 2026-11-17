@@ -1,17 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExpiringTable } from "@/components/customers/ExpiringTable";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { Button } from "@/components/ui/Button";
 import { FilterPill } from "@/components/ui/FilterPill";
+import { useCustomerModals } from "@/hooks/useCustomerModals";
 import { useDashboardSummary } from "@/hooks/useDashboardSummary";
+import { getCustomerStats } from "@/lib/api";
 import { getExpiringBucket, searchCustomers } from "@/lib/customer-list";
 import { getToday } from "@/lib/today";
-import type { CustomerWithStatus, ExpiringRange } from "@/types";
-import { useCustomerModals } from "@/hooks/useCustomerModals";
+import type { CustomerStats, CustomerWithStatus, ExpiringRange } from "@/types";
 
 export default function ExpiringPage() {
   const router = useRouter();
@@ -19,13 +20,33 @@ export default function ExpiringPage() {
   const { summary, loading, failed, retry } = useDashboardSummary();
   const [query, setQuery] = useState("");
   const [range, setRange] = useState<ExpiringRange>("all");
+  const [stats, setStats] = useState<CustomerStats | null>(null);
 
   const all = useMemo(() => summary?.expiring ?? [], [summary]);
 
-    const { openRenew, openReminder, modals } = useCustomerModals(retry);
-  
+  const { openRenew, openReminder, modals } = useCustomerModals(retry);
 
-  const rangeCounts = useMemo(() => {
+  // Bucket counts come from GET /customers/stats. Reloaded every time the summary reloads.
+  useEffect(() => {
+    if (!summary) return;
+    let cancelled = false;
+    getCustomerStats()
+      .then((next) => {
+        if (!cancelled) setStats(next);
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null); // fall back to counting the loaded rows
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [summary]);
+
+  // The list is capped at 100 rows, the counts from the API are exact.
+  const total = summary?.counts.expiring ?? all.length;
+
+  const rangeCounts = useMemo<Record<ExpiringRange, number>>(() => {
+    if (stats) return { all: stats.expiring, ...stats.expiringBuckets };
     const result: Record<ExpiringRange, number> = {
       all: all.length,
       "1-3": 0,
@@ -36,7 +57,7 @@ export default function ExpiringPage() {
       result[getExpiringBucket(customer.daysLeft)] += 1;
     }
     return result;
-  }, [all]);
+  }, [stats, all]);
 
   const rows = useMemo(() => {
     const byRange =
@@ -46,7 +67,6 @@ export default function ExpiringPage() {
     return searchCustomers(byRange, query);
   }, [all, range, query]);
 
-  const total = all.length;
   const subtitle =
     loading || failed
       ? "Subscriptions expiring within the next 10 days"
@@ -63,7 +83,6 @@ export default function ExpiringPage() {
 
   const openCustomer = (customer: CustomerWithStatus) =>
     router.push(`/customers/${customer.id}`);
-  // TODO (task 9): open Send reminder / Renew modals instead.
   const handleReminder = openReminder;
   const handleRenew = openRenew;
 

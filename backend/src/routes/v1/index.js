@@ -9,6 +9,7 @@ const paymentRoute = require("./payment.route");
 const settingsRoute = require("./settings.route");
 const metaRoute = require("./meta.route");
 const dashboardRoute = require("./dashboard.route");
+const renewalRoute = require("./renewal.route");
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ const defaultRoutes = [
   { path: "/settings", route: settingsRoute },
   { path: "/meta", route: metaRoute },
   { path: "/dashboard", route: dashboardRoute },
+  { path: "/renewal", route: renewalRoute },
 ];
 
 const devRoutes = [

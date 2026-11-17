@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CircleCheck, Clock, TriangleAlert, Users } from "lucide-react";
+import { CircleCheck, Clock, TriangleAlert, Users, Wallet } from "lucide-react";
 import { DashboardExpiredPanel } from "@/components/customers/DashboardExpiredPanel";
 import { DashboardExpiringPanel } from "@/components/customers/DashboardExpiringPanel";
 import { NeedsAttentionList } from "@/components/customers/NeedsAttentionList";
@@ -14,6 +14,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { searchCustomers } from "@/lib/customer-list";
 import { parseISODate } from "@/lib/dates";
 import { formatFullDate } from "@/lib/format";
+import { formatMoney } from "@/lib/payment";
 import { getToday } from "@/lib/today";
 import type { CustomerWithStatus } from "@/types";
 import { useCustomerModals } from "@/hooks/useCustomerModals";
@@ -27,6 +28,7 @@ function formatMobileLabel(iso: string): string {
     timeZone: "UTC",
   }).format(parseISODate(iso));
 }
+
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -49,6 +51,7 @@ export default function DashboardPage() {
   );
 
   const counts = summary?.counts;
+  const payments = summary?.payments;
   const hasQuery = query.trim().length > 0;
   const showBanner =
     !loading && !failed && summary !== null && summary.needsAttention > 0;
@@ -56,11 +59,16 @@ export default function DashboardPage() {
   const openCustomer = (customer: CustomerWithStatus) =>
     router.push(`/customers/${customer.id}`);
 
-  // TODO (task 9): open the Send reminder modal instead.
   const handleReminder = openReminder;
 
   const statValue = (value: number | undefined) =>
     loading || value === undefined ? "—" : value;
+
+  const revenueValue =
+    loading || !payments ? "—" : formatMoney(payments.revenueThisMonth, payments.currency);
+  const revenueCaption = payments
+    ? `${payments.paidCount} paid · ${payments.unpaidCount} unpaid`
+    : "Paid and unpaid payments";
 
   return (
     <>
@@ -147,6 +155,18 @@ export default function DashboardPage() {
               loading={loading}
             />
           </div>
+        </div>
+
+        {/* Revenue: tablet and desktop only (not in the mobile design). Same card width as the row above. */}
+        <div className="hidden gap-5 md:grid md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Revenue this month"
+            value={revenueValue}
+            caption={revenueCaption}
+            icon={Wallet}
+            tone="success"
+            loading={loading}
+          />
         </div>
 
         {/* Mobile: single list */}

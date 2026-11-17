@@ -1,9 +1,351 @@
 # Code snapshot
-Generated: 2026-11-13T09:48:05.951Z
+Generated: 2026-11-17T05:29:50.184Z
+Files: 82
+
+## File list
+- .env.example
+- ecosystem.config.json
+- package.json
+- README.md
+- src/app.js
+- src/config/business.js
+- src/config/config.js
+- src/config/logger.js
+- src/config/morgan.js
+- src/config/passport.js
+- src/config/response.js
+- src/config/roles.js
+- src/config/tokens.js
+- src/controllers/auth.controller.js
+- src/controllers/customer.controller.js
+- src/controllers/dashboard.controller.js
+- src/controllers/health.controller.js
+- src/controllers/index.js
+- src/controllers/meta.controller.js
+- src/controllers/payment.controller.js
+- src/controllers/renewal.controller.js
+- src/controllers/settings.controller.js
+- src/controllers/user.controller.js
+- src/docs/components.yml
+- src/docs/swaggerDef.js
+- src/index.js
+- src/middlewares/auth.js
+- src/middlewares/error.js
+- src/middlewares/rateLimiter.js
+- src/middlewares/validate.js
+- src/models/customer.model.js
+- src/models/index.js
+- src/models/payment.model.js
+- src/models/plugins/index.js
+- src/models/plugins/paginate.plugin.js
+- src/models/plugins/toJSON.plugin.js
+- src/models/reminderLog.model.js
+- src/models/renewal.model.js
+- src/models/settings.model.js
+- src/models/token.model.js
+- src/models/user.model.js
+- src/routes/v1/auth.route.js
+- src/routes/v1/customer.route.js
+- src/routes/v1/dashboard.route.js
+- src/routes/v1/docs.route.js
+- src/routes/v1/health.route.js
+- src/routes/v1/index.js
+- src/routes/v1/meta.route.js
+- src/routes/v1/payment.route.js
+- src/routes/v1/renewal.route.js
+- src/routes/v1/settings.route.js
+- src/routes/v1/user.route.js
+- src/serializers/customer.serializer.js
+- src/serializers/settings.serializer.js
+- src/services/auth.service.js
+- src/services/customer.service.js
+- src/services/dashboard.service.js
+- src/services/index.js
+- src/services/meta.service.js
+- src/services/payment.service.js
+- src/services/renewal.service.js
+- src/services/settings.service.js
+- src/services/token.service.js
+- src/services/user.service.js
+- src/utils/ApiError.js
+- src/utils/catchAsync.js
+- src/utils/dates.js
+- src/utils/money.js
+- src/utils/phone.js
+- src/utils/pick.js
+- src/utils/seedData.js
+- src/utils/seeder.js
+- src/utils/status.js
+- src/utils/subscription.js
+- src/utils/today.js
+- src/validations/auth.validation.js
+- src/validations/custom.validation.js
+- src/validations/customer.validation.js
+- src/validations/index.js
+- src/validations/payment.validation.js
+- src/validations/settings.validation.js
+- src/validations/user.validation.js
+
+## .env.example
+````
+# Port number
+
+PORT=
+
+FRONTEND_URL=
+
+APP_TIMEZONE=
+
+SEED_ADMIN_EMAIL=
+
+SEED_ADMIN_PASSWORD=<hidden>
+
+TRUST_PROXY=
+
+MOCK_TODAY=
+
+
+# URL of the Mongo DB
+
+MONGODB_URL=<hidden>
+
+NODE_ENV=development
+
+# JWT secret key
+
+JWT_SECRET=<hidden>
+
+# Number of minutes after which an access token expires
+
+JWT_ACCESS_EXPIRATION_MINUTES=
+
+# Number of days after which a refresh token expires
+
+JWT_REFRESH_EXPIRATION_DAYS=
+
+
+# ip addresses
+
+BACKEND_IP=localhost #default
+````
+
+## ecosystem.config.json
+````json
+{
+    "apps": [
+      {
+        "name": "app",
+        "script": "src/index.js",
+        "instances": 1,
+        "autorestart": true,
+        "watch": false,
+        "time": true,
+        "env": {
+          "NODE_ENV": "production"
+        }
+      }
+    ]
+  }
+````
+
+## package.json
+````json
+{
+  "name": "nigertoday-tv-backend",
+  "version": "1.0.0",
+  "description": "REST API for the Nigertoday TV Subscription Manager",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed": "node src/utils/seeder.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Md. Jihad Khan",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.1.3",
+    "he": "^1.2.0",
+    "helmet": "^7.0.0",
+    "http-status": "^1.7.3",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "luxon": "^3.7.2",
+    "mongoose": "^7.6.3",
+    "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.7",
+    "passport": "^0.6.0",
+    "passport-jwt": "^4.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "validator": "^13.11.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+````
+
+## README.md
+````md
+# Backend
+
+This is a Backend Initial Setup using Monolithic MVC Architecture. It is designed for scalable and secure applications, providing authentication, real-time communication, and secure API endpoints to support both web and mobile platforms.
+
+## 📌 Features
+
+- ✅ User authentication with **JWT & Passport.js**
+- ✅ Real-time communication using **Socket.io**
+- ✅ Secure API with **Express.js** and **MongoDB**
+- ✅ Payment processing via **Stripe**
+- ✅ Input validation with **Joi**
+- ✅ Security middleware: **Helmet, CORS, Express-Rate-Limit, xss-clean, express-mongo-sanitize**
+- ✅ API documentation with **Swagger**
+- ✅ File uploads with **Multer**
+- ✅ Logging with **Winston** and **Morgan**
+- ✅ Email services with **Nodemailer**
+- ✅ Geolocation support using **geoip-country**
+- ✅ Data compression with **compression**
+- ✅ Status monitoring with **express-status-monitor**
+
+---
+
+## 🛠 Technologies Used
+
+| Technology                                                              | Purpose                 |
+| ----------------------------------------------------------------------- | ----------------------- |
+| **Node.js**                                                             | Backend runtime         |
+| **Express.js**                                                          | Web framework           |
+| **MongoDB & Mongoose**                                                  | Database & ODM          |
+| **Socket.io**                                                           | Real-time communication |
+| **JWT & Passport.js**                                                   | Authentication          |
+| **Stripe API**                                                          | Payments                |
+| **Swagger**                                                             | API documentation       |
+| **Helmet, CORS, Express-Rate-Limit, xss-clean, express-mongo-sanitize** | Security                |
+| **Multer**                                                              | File uploads            |
+| **Nodemailer**                                                          | Email services          |
+| **GeoIP-Country**                                                       | Geolocation             |
+| **Compression**                                                         | Data compression        |
+| **Express-Status-Monitor**                                              | Monitoring              |
+
+---
+
+## 📥 Installation
+
+### 1️⃣ Clone the repository
+
+```sh
+git clone https://gitlab.com/shadat-hossain/initial-backend-setup-template-mvp-architecture
+cd initial-backend-setup-template-mvp-architecture
+```
+
+### 2️⃣ Install dependencies
+
+```sh
+npm install
+```
+
+### 3️⃣ Setup environment variables
+
+Create a `.env` file and configure the required environment variables:
+
+```ini
+PORT=3000
+MONGO_URI=your_mongodb_uri
+JWT_SECRET=<hidden>
+STRIPE_SECRET=your_stripe_secret
+EMAIL_SERVICE=your_email_service
+EMAIL_USER=your_email
+EMAIL_PASSWORD=your_email_password
+```
+
+### 4️⃣ Run the server
+
+```sh
+npm run dev
+```
+
+---
+
+## 🚀 API Endpoints
+
+The API documentation is available through **Swagger**. You can access it at:
+
+```
+http://your-ip:3000
+```
+
+### 🔑 Authentication
+
+| Method | Endpoint                       | Description         |
+| ------ | ------------------------------ | ------------------- |
+| POST   | `/api/v1/auth/register`        | Register a new user |
+| POST   | `/api/v1/auth/login`           | Login user          |
+| POST   | `/api/v1/auth/verify-email`    | Verify email        |
+| POST   | `/api/v1/auth/forgot-password` | Forgot password     |
+| POST   | `/api/v1/auth/reset-password`  | Reset password      |
+| POST   | `/api/v1/auth/change-password` | Change password     |
+| POST   | `/api/v1/auth/logout`          | Logout user         |
+
+### 👤 User Profile
+
+| Method | Endpoint                    | Description         |
+| ------ | --------------------------- | ------------------- |
+| GET    | `/api/v1/users/self/in`     | Get user profile    |
+| PATCH  | `/api/v1/users/self/update` | Update user profile |
+| POST   | `/api/v1/auth/delete-me`    | Delete user account |
+
+---
+
+## 🛠 Available Scripts
+
+| Script          | Description                                   |
+| --------------- | --------------------------------------------- |
+| `npm run dev`   | Runs the app in development mode with nodemon |
+| `npm run build` | Builds the project using Webpack              |
+| `npm run seed`  | Runs the database seeder                      |
+| `npm test`      | Runs tests (not yet implemented)              |
+
+---
+
+## 📄 License
+
+This project is licensed under the **ISC License**.
+
+---
+
+## 🤝 Contribution
+
+Feel free to fork this repository and submit pull requests.
+
+---
+
+## 📧 Contact
+
+**Authors**: [Md. Shadat Hossain](mailto:shadathossan3500@gmail.com) & Sahinur Islam
+
+If you have any questions, feel free to reach out!
+
+---
+
+### 🌟 Star the repo if you like it! ⭐
+````
 
 ## src/app.js
-
-```js
+````js
 const express = require("express");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
@@ -80,11 +422,10 @@ app.use(errorConverter);
 app.use(errorHandler);
 
 module.exports = app;
-```
+````
 
 ## src/config/business.js
-
-```js
+````js
 // Business constants. Timezone, currency and the expiring window are constants, not stored settings.
 module.exports = Object.freeze({
   EXPIRING_WINDOW_DAYS: 10,
@@ -104,11 +445,10 @@ module.exports = Object.freeze({
     expired: "Hi {firstName}, your TV subscription expired on {date}. Please renew to get your service back. Thank you!",
   }),
 });
-```
+````
 
 ## src/config/config.js
-
-```js
+````js
 const dotenv = require("dotenv");
 const path = require("path");
 const Joi = require("joi");
@@ -242,11 +582,10 @@ module.exports = {
     force: envVars.SEED_FORCE,
   },
 };
-```
+````
 
 ## src/config/logger.js
-
-```js
+````js
 const winston = require('winston');
 const config = require('./config');
 
@@ -277,12 +616,10 @@ const logger = winston.createLogger({
 });
 
 module.exports = logger;
-
-```
+````
 
 ## src/config/morgan.js
-
-```js
+````js
 const morgan = require('morgan');
 const config = require('./config');
 const logger = require('./logger');
@@ -307,12 +644,10 @@ module.exports = {
   successHandler,
   errorHandler,
 };
-
-```
+````
 
 ## src/config/passport.js
-
-```js
+````js
 const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
 const config = require('./config');
 const { tokenTypes } = require('./tokens');
@@ -343,12 +678,10 @@ const jwtStrategy = new JwtStrategy(jwtOptions, jwtVerify);
 module.exports = {
   jwtStrategy,
 };
-
-```
+````
 
 ## src/config/response.js
-
-```js
+````js
 const response = (response = {}) => {
   const responseObject = {
     code: response.statusCode,
@@ -372,11 +705,10 @@ const response = (response = {}) => {
 };
 
 module.exports = response;
-```
+````
 
 ## src/config/roles.js
-
-```js
+````js
 // An application depends on what roles it will have.
 
 const allRoles = {
@@ -393,12 +725,10 @@ module.exports = {
   roles,
   roleRights,
 };
-
-```
+````
 
 ## src/config/tokens.js
-
-```js
+````js
 const tokenTypes = {
   ACCESS: 'access',
   REFRESH: 'refresh',
@@ -409,12 +739,10 @@ const tokenTypes = {
 module.exports = {
   tokenTypes,
 };
-
-```
+````
 
 ## src/controllers/auth.controller.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const catchAsync = require("../utils/catchAsync");
 const response = require("../config/response");
@@ -476,11 +804,10 @@ module.exports = {
   logout,
   changePassword,
 };
-```
+````
 
 ## src/controllers/customer.controller.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const catchAsync = require("../utils/catchAsync");
 const response = require("../config/response");
@@ -552,11 +879,29 @@ module.exports = {
   upsertRenewalPayment,
   deleteCustomer,
 };
-```
+````
+
+## src/controllers/dashboard.controller.js
+````js
+const httpStatus = require("http-status");
+const catchAsync = require("../utils/catchAsync");
+const response = require("../config/response");
+const { dashboardService } = require("../services");
+
+const getSummary = catchAsync(async (req, res) => {
+  const data = await dashboardService.getDashboardSummary();
+  res.status(httpStatus.OK).json(
+    response({ message: "Dashboard summary", statusCode: httpStatus.OK, type: "dashboard", data })
+  );
+});
+
+module.exports = {
+  getSummary,
+};
+````
 
 ## src/controllers/health.controller.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const catchAsync = require("../utils/catchAsync");
 const response = require("../config/response");
@@ -575,21 +920,42 @@ const getHealth = catchAsync(async (req, res) => {
 module.exports = {
   getHealth,
 };
-```
+````
 
 ## src/controllers/index.js
-
-```js
+````js
 module.exports.authController = require('./auth.controller');
 module.exports.userController = require('./user.controller');
 module.exports.customerController = require('./customer.controller');
 module.exports.paymentController = require('./payment.controller');
 module.exports.healthController = require('./health.controller');
-```
+module.exports.settingsController = require('./settings.controller');
+module.exports.metaController = require('./meta.controller');
+module.exports.dashboardController = require('./dashboard.controller');
+module.exports.renewalController = require('./renewal.controller');
+````
+
+## src/controllers/meta.controller.js
+````js
+const httpStatus = require("http-status");
+const catchAsync = require("../utils/catchAsync");
+const response = require("../config/response");
+const { metaService } = require("../services");
+
+const getMeta = catchAsync(async (req, res) => {
+  const data = metaService.getMeta();
+  res.status(httpStatus.OK).json(
+    response({ message: "Meta", statusCode: httpStatus.OK, type: "meta", data })
+  );
+});
+
+module.exports = {
+  getMeta,
+};
+````
 
 ## src/controllers/payment.controller.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const catchAsync = require("../utils/catchAsync");
 const response = require("../config/response");
@@ -605,11 +971,64 @@ const listPayments = catchAsync(async (req, res) => {
 module.exports = {
   listPayments,
 };
-```
+````
+
+## src/controllers/renewal.controller.js
+````js
+const httpStatus = require("http-status");
+const { renewalService } = require("../services");
+const response = require("../config/response");
+const catchAsync = require("../utils/catchAsync");
+
+const createRenewal = catchAsync(async (req, res) => {
+  const data = await renewalService.createRenewal(req.body);
+  res.status(httpStatus.OK).json(
+    response({ message: "Renewal Created Successfully", statusCode: httpStatus.OK, data })
+  );
+});
+
+const extendRenewal =  catchAsync(async (req, res) => {
+  const data = await renewalService.extendRenewal(req.body);
+  res.status(httpStatus.OK).json(
+    response({ message: "Renewal Extended Successfully", statusCode: httpStatus.OK, data })
+  );
+}); 
+
+module.exports = {
+  createRenewal,
+  extendRenewal
+};
+````
+
+## src/controllers/settings.controller.js
+````js
+const httpStatus = require("http-status");
+const catchAsync = require("../utils/catchAsync");
+const response = require("../config/response");
+const { settingsService } = require("../services");
+
+const getSettings = catchAsync(async (req, res) => {
+  const data = await settingsService.getSettings();
+  res.status(httpStatus.OK).json(
+    response({ message: "Settings", statusCode: httpStatus.OK, type: "settings", data })
+  );
+});
+
+const updateSettings = catchAsync(async (req, res) => {
+  const data = await settingsService.updateSettings(req.body);
+  res.status(httpStatus.OK).json(
+    response({ message: "Settings updated", statusCode: httpStatus.OK, type: "settings", data })
+  );
+});
+
+module.exports = {
+  getSettings,
+  updateSettings,
+};
+````
 
 ## src/controllers/user.controller.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const pick = require("../utils/pick");
 const catchAsync = require("../utils/catchAsync");
@@ -645,11 +1064,10 @@ module.exports = {
   getProfile,
   updateProfile,
 };
-```
+````
 
 ## src/docs/components.yml
-
-```yml
+````yaml
 components:
   schemas:
     User:
@@ -742,12 +1160,10 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
-```
+````
 
 ## src/docs/swaggerDef.js
-
-```js
+````js
 const { version } = require("../../package.json");
 
 const swaggerDef = {
@@ -760,31 +1176,31 @@ const swaggerDef = {
 };
 
 module.exports = swaggerDef;
-```
+````
 
 ## src/index.js
-
-```js
+````js
 const mongoose = require("mongoose");
 const app = require("./app");
 const config = require("./config/config");
 const logger = require("./config/logger");
 
-// My Local IP Address
-const myIp = process.env.BACKEND_IP;
-
 let server;
-mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
-  logger.info("Connected to MongoDB");
-  server = app.listen(config.port, myIp, () => {
-    // logger.info(`Listening to port ${config.port}`);
-    logger.info(`Listening to ip http://${myIp}:${config.port}`);
-  });
 
-  server.listen(config.port, process.env.BACKEND_IP, () => {
-    // logger.info(`Socket IO listening to port ${config.port}`);
+const listenArgs = config.host ? [config.port, config.host] : [config.port];
+
+mongoose
+  .connect(config.mongoose.url, config.mongoose.options)
+  .then(() => {
+    logger.info("Connected to MongoDB");
+    server = app.listen(...listenArgs, () => {
+      logger.info(`Listening on ${config.host}:${config.port}`);
+    });
+  })
+  .catch((error) => {
+    logger.error(error);
+    process.exit(1);
   });
-});
 
 const exitHandler = () => {
   if (server) {
@@ -808,15 +1224,15 @@ process.on("unhandledRejection", unexpectedErrorHandler);
 process.on("SIGTERM", () => {
   logger.info("SIGTERM received");
   if (server) {
-    server.close();
+    server.close(() => process.exit(0));
+  } else {
+    process.exit(0);
   }
 });
-
-```
+````
 
 ## src/middlewares/auth.js
-
-```js
+````js
 const passport = require("passport");
 const httpStatus = require("http-status");
 const ApiError = require("../utils/ApiError");
@@ -854,11 +1270,10 @@ const auth =
   };
 
 module.exports = auth;
-```
+````
 
 ## src/middlewares/error.js
-
-```js
+````js
 const mongoose = require("mongoose");
 const httpStatus = require("http-status");
 const config = require("../config/config");
@@ -921,11 +1336,10 @@ module.exports = {
   errorConverter,
   errorHandler,
 };
-```
+````
 
 ## src/middlewares/rateLimiter.js
-
-```js
+````js
 const rateLimit = require("express-rate-limit");
 const httpStatus = require("http-status");
 
@@ -958,11 +1372,10 @@ module.exports = {
   authLimiter,
   apiLimiter,
 };
-```
+````
 
 ## src/middlewares/validate.js
-
-```js
+````js
 const Joi = require('joi');
 const httpStatus = require('http-status');
 const pick = require('../utils/pick');
@@ -984,12 +1397,10 @@ const validate = (schema) => (req, res, next) => {
 };
 
 module.exports = validate;
-
-```
+````
 
 ## src/models/customer.model.js
-
-```js
+````js
 const mongoose = require("mongoose");
 const validator = require("validator");
 const { toJSON, paginate } = require("./plugins");
@@ -1033,12 +1444,10 @@ customerSchema.plugin(toJSON);
 customerSchema.plugin(paginate);
 
 module.exports = mongoose.model("Customer", customerSchema);
-
-```
+````
 
 ## src/models/index.js
-
-```js
+````js
 module.exports.Token = require("./token.model");
 module.exports.User = require("./user.model");
 module.exports.Customer = require("./customer.model");
@@ -1046,11 +1455,10 @@ module.exports.Renewal = require("./renewal.model");
 module.exports.Payment = require("./payment.model");
 module.exports.Settings = require("./settings.model");
 module.exports.ReminderLog = require("./reminderLog.model");
-```
+````
 
 ## src/models/payment.model.js
-
-```js
+````js
 const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
 const {
@@ -1096,20 +1504,16 @@ paymentSchema.plugin(toJSON);
 paymentSchema.plugin(paginate);
 
 module.exports = mongoose.model("Payment", paymentSchema);
-
-```
+````
 
 ## src/models/plugins/index.js
-
-```js
+````js
 module.exports.toJSON = require('./toJSON.plugin');
 module.exports.paginate = require('./paginate.plugin');
-
-```
+````
 
 ## src/models/plugins/paginate.plugin.js
-
-```js
+````js
 const paginate = (schema) => {
   schema.statics.paginate = async function (filter, options) {
     let sort = '';
@@ -1172,12 +1576,10 @@ module.exports = paginate;
 //   populate: 'crewLeaders image username fullName email, affiliations' // Specify fields for crewLeaders and affiliations
 // };
 // Example
-
-```
+````
 
 ## src/models/plugins/toJSON.plugin.js
-
-```js
+````js
 /* eslint-disable no-param-reassign */
 
 /**
@@ -1228,12 +1630,10 @@ const toJSON = (schema) => {
 };
 
 module.exports = toJSON;
-
-```
+````
 
 ## src/models/reminderLog.model.js
-
-```js
+````js
 const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
 const {
@@ -1275,12 +1675,10 @@ reminderLogSchema.plugin(toJSON);
 reminderLogSchema.plugin(paginate);
 
 module.exports = mongoose.model("ReminderLog", reminderLogSchema);
-
-```
+````
 
 ## src/models/renewal.model.js
-
-```js
+````js
 const mongoose = require("mongoose");
 const { toJSON, paginate } = require("./plugins");
 const { DURATION_OPTIONS, RENEWAL_TYPES } = require("../config/business");
@@ -1311,12 +1709,10 @@ renewalSchema.plugin(toJSON);
 renewalSchema.plugin(paginate);
 
 module.exports = mongoose.model("Renewal", renewalSchema);
-
-```
+````
 
 ## src/models/settings.model.js
-
-```js
+````js
 const mongoose = require("mongoose");
 const { toJSON } = require("./plugins");
 const {
@@ -1373,12 +1769,10 @@ const settingsSchema = mongoose.Schema(
 settingsSchema.plugin(toJSON);
 
 module.exports = mongoose.model("Settings", settingsSchema);
-
-```
+````
 
 ## src/models/token.model.js
-
-```js
+````js
 const mongoose = require('mongoose');
 const { toJSON } = require('./plugins');
 const { tokenTypes } = require('../config/tokens');
@@ -1423,12 +1817,10 @@ tokenSchema.plugin(toJSON);
 const Token = mongoose.model('Token', tokenSchema);
 
 module.exports = Token;
-
-```
+````
 
 ## src/models/user.model.js
-
-```js
+````js
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
@@ -1528,12 +1920,10 @@ userSchema.pre("save", async function (next) {
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;
-
-```
+````
 
 ## src/routes/v1/auth.route.js
-
-```js
+````js
 const express = require("express");
 const auth = require("../../middlewares/auth");
 const validate = require("../../middlewares/validate");
@@ -1651,11 +2041,10 @@ router.post("/logout", auth("admin"), validate(authValidation.logout), authContr
 router.post("/change-password", auth("admin"), validate(authValidation.changePassword), authController.changePassword);
 
 module.exports = router;
-```
+````
 
 ## src/routes/v1/customer.route.js
-
-```js
+````js
 const express = require("express");
 const auth = require("../../middlewares/auth");
 const validate = require("../../middlewares/validate");
@@ -1985,11 +2374,37 @@ router
   .delete(auth("admin"), validate(customerValidation.deleteCustomer), customerController.deleteCustomer);
 
 module.exports = router;
-```
+````
+
+## src/routes/v1/dashboard.route.js
+````js
+const express = require("express");
+const auth = require("../../middlewares/auth");
+const { dashboardController } = require("../../controllers");
+
+const router = express.Router();
+
+/**
+ * @swagger
+ * /dashboard/summary:
+ *   get:
+ *     summary: Dashboard counts, expiring and expired lists, and this month's payment summary
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       "200":
+ *         description: Returns today, counts, needsAttention, expiring (daysLeft asc), expired (most recent first, max 100 each), payments
+ *       "401":
+ *         description: Please authenticate
+ */
+router.get("/summary", auth("admin"), dashboardController.getSummary);
+
+module.exports = router;
+````
 
 ## src/routes/v1/docs.route.js
-
-```js
+````js
 const express = require("express");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
@@ -2006,11 +2421,10 @@ router.use("/", swaggerUi.serve);
 router.get("/", swaggerUi.setup(specs, { explorer: true }));
 
 module.exports = router;
-```
+````
 
 ## src/routes/v1/health.route.js
-
-```js
+````js
 const express = require("express");
 const { healthController } = require("../../controllers");
 
@@ -2029,11 +2443,10 @@ const router = express.Router();
 router.get("/", healthController.getHealth);
 
 module.exports = router;
-```
+````
 
 ## src/routes/v1/index.js
-
-```js
+````js
 const express = require("express");
 const config = require("../../config/config");
 const healthRoute = require("./health.route");
@@ -2042,6 +2455,10 @@ const userRoute = require("./user.route");
 const docsRoute = require("./docs.route");
 const customerRoute = require("./customer.route");
 const paymentRoute = require("./payment.route");
+const settingsRoute = require("./settings.route");
+const metaRoute = require("./meta.route");
+const dashboardRoute = require("./dashboard.route");
+const renewalRoute = require("./renewal.route");
 
 const router = express.Router();
 
@@ -2051,6 +2468,10 @@ const defaultRoutes = [
   { path: "/users", route: userRoute },
   { path: "/customers", route: customerRoute },
   { path: "/payments", route: paymentRoute },
+  { path: "/settings", route: settingsRoute },
+  { path: "/meta", route: metaRoute },
+  { path: "/dashboard", route: dashboardRoute },
+  { path: "/renewal", route: renewalRoute },
 ];
 
 const devRoutes = [
@@ -2070,11 +2491,37 @@ if (config.env === "development") {
 }
 
 module.exports = router;
-```
+````
+
+## src/routes/v1/meta.route.js
+````js
+const express = require("express");
+const auth = require("../../middlewares/auth");
+const { metaController } = require("../../controllers");
+
+const router = express.Router();
+
+/**
+ * @swagger
+ * /meta:
+ *   get:
+ *     summary: App constants and today's date (today comes from the backend clock or MOCK_TODAY)
+ *     tags: [Meta]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       "200":
+ *         description: Returns today, timezone, currency, expiringWindowDays
+ *       "401":
+ *         description: Please authenticate
+ */
+router.get("/", auth("admin"), metaController.getMeta);
+
+module.exports = router;
+````
 
 ## src/routes/v1/payment.route.js
-
-```js
+````js
 const express = require("express");
 const auth = require("../../middlewares/auth");
 const validate = require("../../middlewares/validate");
@@ -2131,11 +2578,103 @@ const router = express.Router();
 router.get("/", auth("admin"), validate(paymentValidation.getPayments), paymentController.listPayments);
 
 module.exports = router;
-```
+````
+
+## src/routes/v1/renewal.route.js
+````js
+const express = require("express");
+const auth = require("../../middlewares/auth");
+const { renewalController } = require("../../controllers");
+
+const router = express.Router();
+
+
+router
+  .route("/create")
+  .post(auth("admin"), renewalController.createRenewal);
+router
+  .route("/extend-renewal")
+  .patch(auth("admin"), renewalController.extendRenewal);
+
+module.exports = router;
+````
+
+## src/routes/v1/settings.route.js
+````js
+const express = require("express");
+const auth = require("../../middlewares/auth");
+const validate = require("../../middlewares/validate");
+const settingsValidation = require("../../validations/settings.validation");
+const { settingsController } = require("../../controllers");
+
+const router = express.Router();
+
+/**
+ * @swagger
+ * /settings:
+ *   get:
+ *     summary: Get the reminder settings, templates and default prices
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       "200":
+ *         description: Returns the settings
+ *       "401":
+ *         description: Please authenticate
+ *   patch:
+ *     summary: Partially update the settings (templates and prices merge field by field)
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               remind7Days:
+ *                 type: boolean
+ *               remind3Days:
+ *                 type: boolean
+ *               remind1Day:
+ *                 type: boolean
+ *               remindExpired:
+ *                 type: boolean
+ *               reminderChannels:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [email, whatsapp]
+ *               reminderSendHour:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 23
+ *               reminderTemplates:
+ *                 type: object
+ *                 description: d7, d3, d1, expired. Placeholders {firstName} and {date}
+ *               prices:
+ *                 type: object
+ *                 description: m3, m6, m12 (number or null)
+ *     responses:
+ *       "200":
+ *         description: Returns the updated settings
+ *       "400":
+ *         description: Validation error
+ *       "401":
+ *         description: Please authenticate
+ */
+router
+  .route("/")
+  .get(auth("admin"), settingsController.getSettings)
+  .patch(auth("admin"), validate(settingsValidation.updateSettings), settingsController.updateSettings);
+
+module.exports = router;
+````
 
 ## src/routes/v1/user.route.js
-
-```js
+````js
 const express = require("express");
 const auth = require("../../middlewares/auth");
 const validate = require("../../middlewares/validate");
@@ -2191,11 +2730,10 @@ router.get("/self/in", auth("admin"), userController.getProfile);
 router.patch("/self/update", auth("admin"), validate(userValidation.updateProfile), userController.updateProfile);
 
 module.exports = router;
-```
+````
 
 ## src/serializers/customer.serializer.js
-
-```js
+````js
 const { formatDateOnly } = require("../utils/dates");
 const { getStatus } = require("../utils/status");
 
@@ -2272,11 +2810,37 @@ module.exports = {
   toCustomerListItem,
   toCustomerDetail,
 };
-```
+````
+
+## src/serializers/settings.serializer.js
+````js
+const toSettingsDto = (settings) => ({
+  remind7Days: settings.remind7Days,
+  remind3Days: settings.remind3Days,
+  remind1Day: settings.remind1Day,
+  remindExpired: settings.remindExpired,
+  reminderChannels: [...settings.reminderChannels],
+  reminderSendHour: settings.reminderSendHour,
+  reminderTemplates: {
+    d7: settings.reminderTemplates.d7,
+    d3: settings.reminderTemplates.d3,
+    d1: settings.reminderTemplates.d1,
+    expired: settings.reminderTemplates.expired,
+  },
+  prices: {
+    m3: settings.prices.m3 ?? null,
+    m6: settings.prices.m6 ?? null,
+    m12: settings.prices.m12 ?? null,
+  },
+});
+
+module.exports = {
+  toSettingsDto,
+};
+````
 
 ## src/services/auth.service.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const tokenService = require("./token.service");
 const userService = require("./user.service");
@@ -2333,11 +2897,10 @@ module.exports = {
   refreshAuth,
   changePassword,
 };
-```
+````
 
 ## src/services/customer.service.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const escapeRegExp = require("lodash/escapeRegExp");
 const { Customer, Renewal, Payment, ReminderLog } = require("../models");
@@ -2347,7 +2910,10 @@ const { parseDateOnly } = require("../utils/dates");
 const { getToday } = require("../utils/today");
 const { getStatusRanges } = require("../utils/status");
 const { calcExpiry, getRenewalBase } = require("../utils/subscription");
-const { toCustomerListItem, toCustomerDetail } = require("../serializers/customer.serializer");
+const {
+  toCustomerListItem,
+  toCustomerDetail,
+} = require("../serializers/customer.serializer");
 const paymentService = require("./payment.service");
 
 const SORT_OPTIONS = {
@@ -2361,8 +2927,13 @@ const SORT_OPTIONS = {
 
 const SUBSCRIPTION_CHANGED = "Subscription was changed. Refresh and try again.";
 
-const isDuplicateKey = (error) => Boolean(error) && error.code === 11000;
-const phoneExists = () => new ApiError(httpStatus.CONFLICT, "Phone number already exists");
+const isPhoneDuplicate = (error) =>
+  Boolean(error) &&
+  error.code === 11000 &&
+  Boolean(error.keyPattern && error.keyPattern.phone);
+
+const phoneExists = () =>
+  new ApiError(httpStatus.CONFLICT, "Phone number already exists");
 
 const findCustomerOrThrow = async (id) => {
   const customer = await Customer.findById(id);
@@ -2424,7 +2995,9 @@ const listCustomers = async (query) => {
   });
   return {
     ...result,
-    results: result.results.map((customer) => toCustomerListItem(customer, today)),
+    results: result.results.map((customer) =>
+      toCustomerListItem(customer, today),
+    ),
   };
 };
 
@@ -2432,7 +3005,8 @@ const getCustomerStats = async ({ q } = {}) => {
   const today = getToday();
   const ranges = getStatusRanges(today);
   const base = buildSearchFilter(q);
-  const count = (expiresAt) => Customer.countDocuments(expiresAt ? { ...base, expiresAt } : base);
+  const count = (expiresAt) =>
+    Customer.countDocuments(expiresAt ? { ...base, expiresAt } : base);
 
   const [total, active, expiring, expired, b13, b47, b810] = await Promise.all([
     count(),
@@ -2466,7 +3040,9 @@ const createCustomer = async (body) => {
   const startDate = body.startDate ? parseDateOnly(body.startDate) : today;
   const expiresAt = calcExpiry(startDate, body.durationMonths);
   // Validate the payment before anything is written.
-  const paymentFields = body.payment ? paymentService.buildPaymentFields(body.payment, today) : null;
+  const paymentFields = body.payment
+    ? paymentService.buildPaymentFields(body.payment, today)
+    : null;
 
   let customer;
   try {
@@ -2480,7 +3056,7 @@ const createCustomer = async (body) => {
       createdAt: startDate, // customerSince = start date
     });
   } catch (error) {
-    if (isDuplicateKey(error)) throw phoneExists();
+    if (isPhoneDuplicate(error)) throw phoneExists();
     throw error;
   }
 
@@ -2493,7 +3069,11 @@ const createCustomer = async (body) => {
       durationMonths: body.durationMonths,
     });
     if (paymentFields) {
-      await paymentService.createPayment(customer._id, renewal._id, paymentFields);
+      await paymentService.createPayment(
+        customer._id,
+        renewal._id,
+        paymentFields,
+      );
     }
   } catch (error) {
     // No transactions (D9): undo what was created, then rethrow.
@@ -2515,7 +3095,8 @@ const updateCustomer = async (id, body) => {
 
   if (body.fullName !== undefined) updates.fullName = body.fullName;
   if (body.email !== undefined) updates.email = body.email;
-  if (body.remindersEnabled !== undefined) updates.remindersEnabled = body.remindersEnabled;
+  if (body.remindersEnabled !== undefined)
+    updates.remindersEnabled = body.remindersEnabled;
   if (body.phone !== undefined) {
     const phone = normalizePhone(body.phone);
     if (phone !== customer.phone) {
@@ -2528,7 +3109,7 @@ const updateCustomer = async (id, body) => {
   try {
     await customer.save();
   } catch (error) {
-    if (isDuplicateKey(error)) throw phoneExists();
+    if (isPhoneDuplicate(error)) throw phoneExists();
     throw error;
   }
   return buildDetail(customer, getToday());
@@ -2542,7 +3123,9 @@ const renewCustomer = async (id, body) => {
   const customer = await findCustomerOrThrow(id);
   const today = getToday();
   // Validate the payment before anything is written.
-  const paymentFields = body.payment ? paymentService.buildPaymentFields(body.payment, today) : null;
+  const paymentFields = body.payment
+    ? paymentService.buildPaymentFields(body.payment, today)
+    : null;
 
   const previous = {
     startDate: customer.startDate,
@@ -2554,8 +3137,14 @@ const renewCustomer = async (id, body) => {
 
   const updated = await Customer.findOneAndUpdate(
     { _id: customer._id, expiresAt: previous.expiresAt },
-    { $set: { startDate: base, durationMonths: body.durationMonths, expiresAt: newExpiry } },
-    { new: true }
+    {
+      $set: {
+        startDate: base,
+        durationMonths: body.durationMonths,
+        expiresAt: newExpiry,
+      },
+    },
+    { new: true },
   );
   if (!updated) {
     throw new ApiError(httpStatus.CONFLICT, SUBSCRIPTION_CHANGED);
@@ -2571,13 +3160,25 @@ const renewCustomer = async (id, body) => {
       durationMonths: body.durationMonths,
     });
     if (paymentFields) {
-      await paymentService.createPayment(customer._id, renewal._id, paymentFields);
+      await paymentService.createPayment(
+        customer._id,
+        renewal._id,
+        paymentFields,
+      );
     }
   } catch (error) {
     // No transactions (D9): restore the old period (only if still ours), delete what was created.
-    const cleanup = [Customer.updateOne({ _id: customer._id, expiresAt: newExpiry }, { $set: previous })];
+    const cleanup = [
+      Customer.updateOne(
+        { _id: customer._id, expiresAt: newExpiry },
+        { $set: previous },
+      ),
+    ];
     if (renewal) {
-      cleanup.push(Payment.deleteOne({ renewalId: renewal._id }), Renewal.deleteOne({ _id: renewal._id }));
+      cleanup.push(
+        Payment.deleteOne({ renewalId: renewal._id }),
+        Renewal.deleteOne({ _id: renewal._id }),
+      );
     }
     await Promise.allSettled(cleanup);
     throw error;
@@ -2606,21 +3207,109 @@ module.exports = {
   renewCustomer,
   deleteCustomer,
 };
-```
+````
+
+## src/services/dashboard.service.js
+````js
+const { Customer, Payment } = require("../models");
+const { CURRENCY } = require("../config/business");
+const { addMonths, formatDateOnly, startOfMonth } = require("../utils/dates");
+const { getToday } = require("../utils/today");
+const { getStatusRanges } = require("../utils/status");
+const { toCustomerListItem } = require("../serializers/customer.serializer");
+const customerService = require("./customer.service");
+
+const LIST_LIMIT = 100;
+
+const roundMoney = (value) => Math.round(value * 100) / 100;
+
+/** Revenue and paid count for the current month (APP_TIMEZONE), unpaid count overall. */
+const getPaymentSummary = async (today) => {
+  const monthStart = startOfMonth(today);
+  const nextMonthStart = addMonths(monthStart, 1);
+
+  const [paidRows, unpaidCount] = await Promise.all([
+    Payment.aggregate([
+      { $match: { status: "paid", paidAt: { $gte: monthStart, $lt: nextMonthStart } } },
+      { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
+    ]),
+    Payment.countDocuments({ status: "unpaid" }),
+  ]);
+
+  const paid = paidRows[0] || { total: 0, count: 0 };
+  return {
+    revenueThisMonth: roundMoney(paid.total),
+    currency: CURRENCY,
+    paidCount: paid.count,
+    unpaidCount,
+  };
+};
+
+const getDashboardSummary = async () => {
+  const today = getToday();
+  const ranges = getStatusRanges(today);
+
+  const [stats, expiring, expired, payments] = await Promise.all([
+    customerService.getCustomerStats({}),
+    Customer.find({ expiresAt: ranges.expiring }).sort({ expiresAt: 1, _id: 1 }).limit(LIST_LIMIT),
+    Customer.find({ expiresAt: ranges.expired }).sort({ expiresAt: -1, _id: 1 }).limit(LIST_LIMIT),
+    getPaymentSummary(today),
+  ]);
+
+  return {
+    today: formatDateOnly(today),
+    counts: {
+      total: stats.total,
+      active: stats.active,
+      expiring: stats.expiring,
+      expired: stats.expired,
+    },
+    needsAttention: stats.expiring + stats.expired,
+    expiring: expiring.map((customer) => toCustomerListItem(customer, today)),
+    expired: expired.map((customer) => toCustomerListItem(customer, today)),
+    payments,
+  };
+};
+
+module.exports = {
+  getDashboardSummary,
+};
+````
 
 ## src/services/index.js
-
-```js
+````js
 module.exports.authService = require('./auth.service');
 module.exports.tokenService = require('./token.service');
 module.exports.userService = require('./user.service');
 module.exports.customerService = require('./customer.service');
 module.exports.paymentService = require('./payment.service');
-```
+module.exports.settingsService = require('./settings.service');
+module.exports.metaService = require('./meta.service');
+module.exports.dashboardService = require('./dashboard.service');
+module.exports.renewalService = require('./renewal.service');
+````
+
+## src/services/meta.service.js
+````js
+const config = require("../config/config");
+const { CURRENCY, EXPIRING_WINDOW_DAYS } = require("../config/business");
+const { formatDateOnly } = require("../utils/dates");
+const { getToday } = require("../utils/today");
+
+const getMeta = () => ({
+  today: formatDateOnly(getToday()),
+  timezone: config.app.timezone,
+  currency: CURRENCY,
+  expiringWindowDays: EXPIRING_WINDOW_DAYS,
+});
+
+module.exports = {
+  getMeta,
+};
+````
 
 ## src/services/payment.service.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const { Payment, Customer, Renewal } = require("../models");
 const ApiError = require("../utils/ApiError");
@@ -2729,11 +3418,157 @@ module.exports = {
   upsertPayment,
   listPayments,
 };
-```
+````
+
+## src/services/renewal.service.js
+````js
+const httpStatus = require("http-status");
+const { Customer, Renewal } = require("../models");
+const ApiError = require("../utils/ApiError");
+const { calcExpiry } = require("../utils/subscription");
+const { parseDateOnly } = require("../utils/dates");
+const { getToday } = require("../utils/today");
+
+const createRenewal = async (renewalBody) => {
+  const today = getToday()
+  const periodStart = renewalBody.periodStart
+    ? parseDateOnly(renewalBody.periodStart)
+    : today;
+  const expiresAt = calcExpiry(periodStart, renewalBody.durationMonths);
+
+  try {
+    const customer = await Customer.findById(renewalBody.customerId);
+    if (!customer) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Customer not found");
+    }
+
+    const renewal = await Renewal.create({
+      customerId: customer._id,
+      type: "initial",
+      periodStart,
+      periodEnd: expiresAt,
+      durationMonths: renewalBody.durationMonths,
+    });
+
+    return renewal
+    
+  } catch (error) {
+
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Can't customer renewal");
+
+  }
+
+};
+
+const extendRenewal = async (extendRenewalBody) => {
+  const {customerId, durationMonths} = extendRenewalBody
+  const customer = await Customer.findById(customerId);
+
+  const expiresAt = customer.expiresAt
+  const oldExpiry = expiresAt
+
+  const newExpiry = calcExpiry(oldExpiry, durationMonths);
+
+
+  try {
+    const updated = await Customer.findOneAndUpdate(
+      { _id: customer._id },
+      {
+        $set: {
+          startDate: oldExpiry,
+          durationMonths,
+          expiresAt: newExpiry,
+        },
+      },
+      { new: true },
+    );
+    
+    if (!updated) {
+      throw new ApiError(httpStatus.CONFLICT, SUBSCRIPTION_CHANGED);
+    }
+
+    return updated;
+
+  } catch (error) {
+    
+  }
+
+  let renewal;
+  try {
+    renewal = await Renewal.create({
+      customerId: customer._id,
+      type: "renewal",
+      periodStart: oldExpiry,
+      periodEnd: newExpiry,
+      durationMonths,
+    });
+  } catch (error) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message)
+  }
+
+};
+
+module.exports = {
+  createRenewal,
+  extendRenewal
+};
+````
+
+## src/services/settings.service.js
+````js
+const { Settings } = require("../models");
+const { toSettingsDto } = require("../serializers/settings.serializer");
+
+const SETTINGS_KEY = "main";
+
+const isDuplicateKey = (error) => Boolean(error) && error.code === 11000;
+
+/** Single settings document. Created with defaults on first use. */
+const getSettingsDoc = async () => {
+  const existing = await Settings.findOne({ key: SETTINGS_KEY });
+  if (existing) return existing;
+  try {
+    return await Settings.create({ key: SETTINGS_KEY });
+  } catch (error) {
+    if (!isDuplicateKey(error)) throw error;
+    // Another request created it first.
+    return Settings.findOne({ key: SETTINGS_KEY });
+  }
+};
+
+/** { a: { b: 1 } } -> { "a.b": 1 }. Arrays are kept as values. */
+const flatten = (object, prefix = "") =>
+  Object.entries(object).reduce((acc, [key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      Object.assign(acc, flatten(value, path));
+    } else {
+      acc[path] = value;
+    }
+    return acc;
+  }, {});
+
+const getSettings = async () => toSettingsDto(await getSettingsDoc());
+
+/** Partial update. Nested objects (templates, prices) are merged field by field. */
+const updateSettings = async (body) => {
+  await getSettingsDoc();
+  const updated = await Settings.findOneAndUpdate(
+    { key: SETTINGS_KEY },
+    { $set: flatten(body) },
+    { new: true, runValidators: true }
+  );
+  return toSettingsDto(updated);
+};
+
+module.exports = {
+  getSettings,
+  updateSettings,
+};
+````
 
 ## src/services/token.service.js
-
-```js
+````js
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { DateTime } = require("luxon");
@@ -2802,11 +3637,10 @@ module.exports = {
   verifyToken,
   generateAuthTokens,
 };
-```
+````
 
 ## src/services/user.service.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const { User } = require("../models");
 const ApiError = require("../utils/ApiError");
@@ -2837,11 +3671,10 @@ module.exports = {
   getUserByEmail,
   updateUserById,
 };
-```
+````
 
 ## src/utils/ApiError.js
-
-```js
+````js
 class ApiError extends Error {
   constructor(statusCode, message, isOperational = true, stack = '') {
     super(message);
@@ -2856,23 +3689,19 @@ class ApiError extends Error {
 }
 
 module.exports = ApiError;
-
-```
+````
 
 ## src/utils/catchAsync.js
-
-```js
+````js
 const catchAsync = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch((err) => next(err));
 };
 
 module.exports = catchAsync;
-
-```
+````
 
 ## src/utils/dates.js
-
-```js
+````js
 const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MS_PER_DAY = 86_400_000;
 
@@ -2912,6 +3741,9 @@ const addMonths = (date, n) => {
 /** Whole calendar days: a minus b. */
 const diffDays = (a, b) => Math.round((a.getTime() - b.getTime()) / MS_PER_DAY);
 
+/** First day of the month of `date`, at 00:00:00.000Z. */
+const startOfMonth = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+
 module.exports = {
   parseDateOnly,
   formatDateOnly,
@@ -2919,22 +3751,21 @@ module.exports = {
   addMonths,
   diffDays,
   isValidDateOnly,
+  startOfMonth,
 };
-```
+````
 
 ## src/utils/money.js
-
-```js
+````js
 /** Money: finite number >= 0 with at most 2 decimals. null/undefined allowed (use `required` separately). */
 const isValidMoney = (value) =>
   value === null || value === undefined || (Number.isFinite(value) && value >= 0 && Math.round(value * 100) / 100 === value);
 
 module.exports = { isValidMoney };
-```
+````
 
 ## src/utils/phone.js
-
-```js
+````js
 const httpStatus = require("http-status");
 const ApiError = require("./ApiError");
 
@@ -2962,11 +3793,10 @@ module.exports = {
   normalizePhone,
   maskPhone,
 };
-```
+````
 
 ## src/utils/pick.js
-
-```js
+````js
 /**
  * Create an object composed of the picked object properties
  * @param {Object} object
@@ -2984,20 +3814,107 @@ const pick = (object, keys) => {
 };
 
 module.exports = pick;
+````
 
-```
+## src/utils/seedData.js
+````js
+// Seed data (seed-data.md). Dates are fixed and relative to MOCK_TODAY=2026-10-05.
+// Phones are fake Bangladeshi numbers. Emails are fake and never used for real sending.
 
-## src/utils/seeder.js
-
-```js
-// Minimal safe seeder for B1 (creates the owner only). Rewritten in B6.
-const mongoose = require("mongoose");
-const config = require("../config/config");
-const { User } = require("../models");
+const PRICES = Object.freeze({ 3: 1500, 6: 2800, 12: 5000 });
 
 const OWNER_NAME = "Alex Owner";
+const EXPECTED_MOCK_TODAY = "2026-10-05";
 
-const run = async () => {
+// Renewal numbers (r_NNN, counted in insert order) with special payment rules.
+const UNPAID_RENEWAL_NUMBER = 2; // r_002: John Smith's latest renewal, unpaid
+const NO_PAYMENT_RENEWAL_NUMBER = 8; // r_008: James Cole, no payment record
+
+// [number, fullName, customerSince, currentStartDate, durationMonths, expiryDate]
+const ROWS = [
+  [1, "John Smith", "2026-04-08", "2026-07-08", 3, "2026-10-08"],
+  [2, "Michael Brown", "2026-07-12", "2026-07-12", 3, "2026-10-12"],
+  [3, "Sarah Khan", "2026-10-05", "2026-10-05", 3, "2027-01-05"],
+  [4, "David Lee", "2026-04-15", "2026-04-15", 6, "2026-10-15"],
+  [5, "Emma Wilson", "2026-06-01", "2026-06-01", 12, "2027-06-01"],
+  [6, "Robert Hall", "2026-04-03", "2026-04-03", 6, "2026-10-03"],
+  [7, "James Cole", "2026-03-30", "2026-03-30", 6, "2026-09-30"],
+  [8, "Priya Das", "2026-07-15", "2026-07-15", 3, "2026-10-15"],
+  [9, "Rahim Uddin", "2026-08-10", "2026-08-10", 3, "2026-11-10"],
+  [10, "Nusrat Jahan", "2026-07-20", "2026-07-20", 3, "2026-10-20"],
+  [11, "Tanvir Ahmed", "2026-05-02", "2026-05-02", 6, "2026-11-02"],
+  [12, "Farhana Akter", "2026-06-15", "2026-06-15", 6, "2026-12-15"],
+  [13, "Mahmud Hasan", "2026-01-12", "2026-01-12", 12, "2027-01-12"],
+  [14, "Sumaiya Islam", "2026-09-01", "2026-09-01", 3, "2026-12-01"],
+  [15, "Imran Hossain", "2026-04-20", "2026-04-20", 6, "2026-10-20"],
+  [16, "Shirin Sultana", "2025-11-05", "2025-11-05", 12, "2026-11-05"],
+  [17, "Kamal Pasha", "2026-08-25", "2026-08-25", 3, "2026-11-25"],
+  [18, "Tasnim Rahman", "2026-02-14", "2026-02-14", 12, "2027-02-14"],
+  [19, "Arif Chowdhury", "2026-09-10", "2026-09-10", 6, "2027-03-10"],
+  [20, "Mehzabin Noor", "2026-07-31", "2026-07-31", 3, "2026-10-31"],
+  [21, "Sakib Khan", "2026-03-18", "2026-03-18", 12, "2027-03-18"],
+  [22, "Rumana Begum", "2026-05-28", "2026-05-28", 6, "2026-11-28"],
+  [23, "Jahid Karim", "2026-09-22", "2026-09-22", 3, "2026-12-22"],
+  [24, "Lubna Yasmin", "2026-04-30", "2026-04-30", 6, "2026-10-30"],
+  [25, "Nayeem Siddique", "2025-12-01", "2025-12-01", 12, "2026-12-01"],
+  [26, "Ayesha Siddika", "2026-08-31", "2026-08-31", 6, "2027-02-28"],
+  [27, "Fahim Reza", "2026-06-05", "2026-06-05", 12, "2027-06-05"],
+  [28, "Mousumi Das", "2026-09-28", "2026-09-28", 3, "2026-12-28"],
+  [29, "Rafiq Mia", "2026-07-16", "2026-07-16", 3, "2026-10-16"],
+  [30, "Sadia Afrin", "2026-10-01", "2026-10-01", 6, "2027-04-01"],
+];
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+const buildRenewals = (number, start, months, expiry) => {
+  const current = { kind: "renewal", durationMonths: months, from: start, to: expiry };
+  if (number === 1) {
+    // John Smith: first 3-month period, then the current renewal.
+    return [{ kind: "first", durationMonths: 3, from: "2026-04-08", to: "2026-07-08" }, current];
+  }
+  return [{ ...current, kind: "first" }];
+};
+
+const SEED_CUSTOMERS = ROWS.map(([number, fullName, since, start, months, expiry]) => ({
+  fullName,
+  email: `${fullName.split(" ")[0].toLowerCase()}@email.com`,
+  phone: `+88017000000${pad2(number)}`,
+  customerSince: since,
+  currentStartDate: start,
+  durationMonths: months,
+  expiryDate: expiry,
+  renewals: buildRenewals(number, start, months, expiry),
+}));
+
+module.exports = {
+  PRICES,
+  OWNER_NAME,
+  EXPECTED_MOCK_TODAY,
+  UNPAID_RENEWAL_NUMBER,
+  NO_PAYMENT_RENEWAL_NUMBER,
+  SEED_CUSTOMERS,
+};
+````
+
+## src/utils/seeder.js
+````js
+// Seeder: owner from .env, settings, 30 customers with renewals and payments.
+// Full reset of business data. Refuses to run in production without SEED_FORCE=yes.
+const mongoose = require("mongoose");
+const config = require("../config/config");
+const { CURRENCY } = require("../config/business");
+const { User, Customer, Renewal, Payment, Settings, ReminderLog, Token } = require("../models");
+const { parseDateOnly } = require("./dates");
+const {
+  PRICES,
+  OWNER_NAME,
+  EXPECTED_MOCK_TODAY,
+  UNPAID_RENEWAL_NUMBER,
+  NO_PAYMENT_RENEWAL_NUMBER,
+  SEED_CUSTOMERS,
+} = require("./seedData");
+
+const requireEnv = () => {
   if (config.env === "production" && config.seed.force !== "yes") {
     console.error("Refusing to seed in production. Set SEED_FORCE=yes to override.");
     process.exit(1);
@@ -3007,18 +3924,102 @@ const run = async () => {
     console.error("SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set in .env");
     process.exit(1);
   }
+  if (config.app.mockToday !== EXPECTED_MOCK_TODAY) {
+    console.warn(`Warning: seed dates assume MOCK_TODAY=${EXPECTED_MOCK_TODAY}. Current value: ${config.app.mockToday || "(not set)"}`);
+  }
+};
 
+const resetData = async () => {
+  await Promise.all([
+    Customer.deleteMany({}),
+    Renewal.deleteMany({}),
+    Payment.deleteMany({}),
+    ReminderLog.deleteMany({}),
+    Settings.deleteMany({}),
+    Token.deleteMany({}),
+  ]);
+};
+
+const seedOwner = async () => {
+  const { adminEmail, adminPassword } = config.seed;
+  await User.deleteMany({ email: adminEmail.toLowerCase() });
+  await User.create({
+    fullName: OWNER_NAME,
+    email: adminEmail,
+    password: adminPassword,
+    role: "admin",
+    isEmailVerified: true,
+  });
+};
+
+const seedSettings = async () =>
+  Settings.create({ key: "main", prices: { m3: PRICES[3], m6: PRICES[6], m12: PRICES[12] } });
+
+/** One paid payment per renewal (odd number = cash, even = bkash), with two exceptions. */
+const buildSeedPayment = (renewalNumber, renewal) => {
+  if (renewalNumber === NO_PAYMENT_RENEWAL_NUMBER) return null;
+  const amount = PRICES[renewal.durationMonths];
+  if (renewalNumber === UNPAID_RENEWAL_NUMBER) {
+    return { amount, currency: CURRENCY, method: null, status: "unpaid", paidAt: null };
+  }
+  return {
+    amount,
+    currency: CURRENCY,
+    method: renewalNumber % 2 === 1 ? "cash" : "bkash",
+    status: "paid",
+    paidAt: parseDateOnly(renewal.from),
+  };
+};
+
+/** Sequential inserts keep _id order equal to the frontend list order (c_001 ... c_030). */
+const seedCustomers = async () => {
+  let renewalNumber = 0;
+  let paymentCount = 0;
+
+  for (const item of SEED_CUSTOMERS) {
+    const customer = await Customer.create({
+      fullName: item.fullName,
+      email: item.email,
+      phone: item.phone,
+      startDate: parseDateOnly(item.currentStartDate),
+      durationMonths: item.durationMonths,
+      expiresAt: parseDateOnly(item.expiryDate),
+      remindersEnabled: true,
+      createdAt: parseDateOnly(item.customerSince),
+    });
+
+    for (const renewalItem of item.renewals) {
+      renewalNumber += 1;
+      const renewal = await Renewal.create({
+        customerId: customer._id,
+        type: renewalItem.kind === "first" ? "initial" : "renewal",
+        periodStart: parseDateOnly(renewalItem.from),
+        periodEnd: parseDateOnly(renewalItem.to),
+        durationMonths: renewalItem.durationMonths,
+      });
+
+      const fields = buildSeedPayment(renewalNumber, renewalItem);
+      if (fields) {
+        await Payment.create({ customerId: customer._id, renewalId: renewal._id, ...fields });
+        paymentCount += 1;
+      }
+    }
+  }
+
+  return { customers: SEED_CUSTOMERS.length, renewals: renewalNumber, payments: paymentCount };
+};
+
+const run = async () => {
+  requireEnv();
   await mongoose.connect(config.mongoose.url, config.mongoose.options);
   try {
-    await User.deleteOne({ email: adminEmail.toLowerCase() });
-    await User.create({
-      fullName: OWNER_NAME,
-      email: adminEmail,
-      password: adminPassword,
-      role: "admin",
-      isEmailVerified: true,
-    });
-    console.log("Owner account seeded.");
+    await resetData();
+    await seedOwner();
+    await seedSettings();
+    const totals = await seedCustomers();
+    console.log(
+      `Seeded: owner, settings, ${totals.customers} customers, ${totals.renewals} renewals, ${totals.payments} payments.`
+    );
   } finally {
     await mongoose.disconnect();
   }
@@ -3028,11 +4029,10 @@ run().catch((error) => {
   console.error("Seeding failed:", error.message);
   process.exit(1);
 });
-```
+````
 
 ## src/utils/status.js
-
-```js
+````js
 const { EXPIRING_WINDOW_DAYS } = require("../config/business");
 const { diffDays, addDays } = require("./dates");
 
@@ -3071,11 +4071,10 @@ module.exports = {
   getExpiringBucket,
   getStatusRanges,
 };
-```
+````
 
 ## src/utils/subscription.js
-
-```js
+````js
 const { addMonths } = require("./dates");
 
 /** D6: renewal starts at the later of current expiry and today. One function to change if reversed. */
@@ -3087,11 +4086,10 @@ module.exports = {
   getRenewalBase,
   calcExpiry,
 };
-```
+````
 
 ## src/utils/today.js
-
-```js
+````js
 const { DateTime } = require("luxon");
 const config = require("../config/config");
 const { parseDateOnly } = require("./dates");
@@ -3110,11 +4108,10 @@ module.exports = {
   getToday,
   getNowInZone,
 };
-```
+````
 
 ## src/validations/auth.validation.js
-
-```js
+````js
 const Joi = require("joi");
 const { password } = require("./custom.validation");
 
@@ -3151,11 +4148,10 @@ module.exports = {
   refreshTokens,
   changePassword,
 };
-```
+````
 
 ## src/validations/custom.validation.js
-
-```js
+````js
 const { isValidDateOnly } = require("../utils/dates");
 const { isValidMoney } = require("../utils/money");
 
@@ -3198,11 +4194,10 @@ module.exports = {
   dateOnly,
   money,
 };
-```
+````
 
 ## src/validations/customer.validation.js
-
-```js
+````js
 const Joi = require("joi");
 const { objectId, dateOnly } = require("./custom.validation");
 const { paymentInput } = require("./payment.validation");
@@ -3285,20 +4280,19 @@ module.exports = {
   deleteCustomer,
   renewCustomer,
 };
-```
+````
 
 ## src/validations/index.js
-
-```js
+````js
 module.exports.authValidation = require("./auth.validation");
 module.exports.userValidation = require("./user.validation");
 module.exports.customerValidation = require("./customer.validation");
 module.exports.paymentValidation = require("./payment.validation");
-```
+module.exports.settingsValidation = require("./settings.validation");
+````
 
 ## src/validations/payment.validation.js
-
-```js
+````js
 const Joi = require("joi");
 const { objectId, dateOnly, money } = require("./custom.validation");
 const { PAYMENT_METHODS, PAYMENT_STATUSES } = require("../config/business");
@@ -3339,11 +4333,55 @@ module.exports = {
   upsertPayment,
   getPayments,
 };
-```
+````
+
+## src/validations/settings.validation.js
+````js
+const Joi = require("joi");
+const { money } = require("./custom.validation");
+const { REMINDER_CHANNELS } = require("../config/business");
+
+const ALLOWED_PLACEHOLDERS = ["firstName", "date"];
+
+/** Only {firstName} and {date} are allowed as placeholders. */
+const templateText = (value, helpers) => {
+  const found = value.match(/\{[^}]*\}/g) || [];
+  const unknown = found.filter((token) => !ALLOWED_PLACEHOLDERS.includes(token.slice(1, -1)));
+  if (unknown.length) {
+    return helpers.message(`"{{#label}}" has unknown placeholder ${unknown[0]}. Use {firstName} and {date}`);
+  }
+  return value;
+};
+
+const template = Joi.string().trim().min(1).max(500).custom(templateText);
+const price = Joi.number().min(0).allow(null).custom(money);
+
+const updateSettings = {
+  body: Joi.object()
+    .keys({
+      remind7Days: Joi.boolean(),
+      remind3Days: Joi.boolean(),
+      remind1Day: Joi.boolean(),
+      remindExpired: Joi.boolean(),
+      reminderChannels: Joi.array()
+        .items(Joi.string().valid(...REMINDER_CHANNELS))
+        .unique(),
+      reminderSendHour: Joi.number().integer().min(0).max(23),
+      reminderTemplates: Joi.object()
+        .keys({ d7: template, d3: template, d1: template, expired: template })
+        .min(1),
+      prices: Joi.object().keys({ m3: price, m6: price, m12: price }).min(1),
+    })
+    .min(1),
+};
+
+module.exports = {
+  updateSettings,
+};
+````
 
 ## src/validations/user.validation.js
-
-```js
+````js
 const Joi = require("joi");
 
 const updateProfile = {
@@ -3358,57 +4396,4 @@ const updateProfile = {
 module.exports = {
   updateProfile,
 };
-```
-
-## package.json
-
-```json
-{
-  "name": "nigertoday-tv-backend",
-  "version": "1.0.0",
-  "description": "REST API for the Nigertoday TV Subscription Manager",
-  "main": "src/index.js",
-  "engines": {
-    "node": ">=24"
-  },
-  "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
-    "seed": "node src/utils/seeder.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Md. Jihad Khan",
-  "license": "ISC",
-  "dependencies": {
-    "axios": "^1.6.2",
-    "bcryptjs": "^2.4.3",
-    "compression": "^1.7.4",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-mongo-sanitize": "^2.2.0",
-    "express-rate-limit": "^7.1.3",
-    "he": "^1.2.0",
-    "helmet": "^7.0.0",
-    "http-status": "^1.7.3",
-    "joi": "^17.11.0",
-    "jsonwebtoken": "^9.0.2",
-    "lodash": "^4.17.21",
-    "luxon": "^3.7.2",
-    "mongoose": "^7.6.3",
-    "morgan": "^1.10.0",
-    "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.7",
-    "passport": "^0.6.0",
-    "passport-jwt": "^4.0.1",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.0",
-    "validator": "^13.11.0",
-    "winston": "^3.11.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
-  }
-}
-```
-
+````
