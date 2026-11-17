@@ -43,7 +43,14 @@ const updateSettings = async (body) => {
   return toSettingsDto(updated);
 };
 
+/** Internal: remember the day (Date at 00:00Z) the failure digest was sent. */
+const markDigestSent = async (day) => {
+  await Settings.updateOne({ key: SETTINGS_KEY }, { $set: { lastDigestOn: day } });
+};
+
 module.exports = {
   getSettings,
+  getSettingsDoc,
   updateSettings,
+  markDigestSent,
 };

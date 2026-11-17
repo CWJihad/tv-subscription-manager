@@ -3,7 +3,8 @@ const auth = require("../../middlewares/auth");
 const validate = require("../../middlewares/validate");
 const customerValidation = require("../../validations/customer.validation");
 const paymentValidation = require("../../validations/payment.validation");
-const { customerController } = require("../../controllers");
+const reminderValidation = require("../../validations/reminder.validation");
+const { customerController, reminderController } = require("../../controllers");
 
 const router = express.Router();
 
@@ -241,6 +242,35 @@ router.put(
   auth("admin"),
   validate(paymentValidation.upsertPayment),
   customerController.upsertRenewalPayment
+);
+
+/**
+ * @swagger
+ * /customers/{id}/reminders:
+ *   get:
+ *     summary: Reminder log of one customer (newest first, max 100)
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       "200":
+ *         description: Returns results (reminder logs)
+ *       "401":
+ *         description: Please authenticate
+ *       "404":
+ *         description: Customer not found
+ */
+router.get(
+  "/:id/reminders",
+  auth("admin"),
+  validate(reminderValidation.getCustomerReminders),
+  reminderController.listCustomerReminders
 );
 
 /**

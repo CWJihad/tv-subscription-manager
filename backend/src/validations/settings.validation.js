@@ -1,6 +1,6 @@
 const Joi = require("joi");
 const { money } = require("./custom.validation");
-const { REMINDER_CHANNELS } = require("../config/business");
+const { REMINDER_CHANNELS, REMINDER_STRATEGIES } = require("../config/business");
 
 const ALLOWED_PLACEHOLDERS = ["firstName", "date"];
 
@@ -27,11 +27,13 @@ const updateSettings = {
       reminderChannels: Joi.array()
         .items(Joi.string().valid(...REMINDER_CHANNELS))
         .unique(),
+      reminderStrategy: Joi.string().valid(...REMINDER_STRATEGIES),
       reminderSendHour: Joi.number().integer().min(0).max(23),
       reminderTemplates: Joi.object()
         .keys({ d7: template, d3: template, d1: template, expired: template })
         .min(1),
       prices: Joi.object().keys({ m3: price, m6: price, m12: price }).min(1),
+      failureDigestEnabled: Joi.boolean(),
     })
     .min(1),
 };

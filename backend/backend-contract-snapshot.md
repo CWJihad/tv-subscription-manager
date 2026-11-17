@@ -1,6 +1,6 @@
 # Code snapshot
-Generated: 2026-11-17T05:29:50.184Z
-Files: 82
+Generated: 2026-11-17T16:27:12.321Z
+Files: 91
 
 ## File list
 - .env.example
@@ -23,12 +23,14 @@ Files: 82
 - src/controllers/index.js
 - src/controllers/meta.controller.js
 - src/controllers/payment.controller.js
-- src/controllers/renewal.controller.js
+- src/controllers/reminder.controller.js
 - src/controllers/settings.controller.js
 - src/controllers/user.controller.js
 - src/docs/components.yml
 - src/docs/swaggerDef.js
 - src/index.js
+- src/jobs/index.js
+- src/jobs/reminder.job.js
 - src/middlewares/auth.js
 - src/middlewares/error.js
 - src/middlewares/rateLimiter.js
@@ -52,10 +54,11 @@ Files: 82
 - src/routes/v1/index.js
 - src/routes/v1/meta.route.js
 - src/routes/v1/payment.route.js
-- src/routes/v1/renewal.route.js
+- src/routes/v1/reminder.route.js
 - src/routes/v1/settings.route.js
 - src/routes/v1/user.route.js
 - src/serializers/customer.serializer.js
+- src/serializers/reminder.serializer.js
 - src/serializers/settings.serializer.js
 - src/services/auth.service.js
 - src/services/customer.service.js
@@ -63,26 +66,32 @@ Files: 82
 - src/services/index.js
 - src/services/meta.service.js
 - src/services/payment.service.js
-- src/services/renewal.service.js
+- src/services/reminder.service.js
+- src/services/reminder/providers/email.provider.js
+- src/services/reminder/providers/whatsapp.provider.js
 - src/services/settings.service.js
 - src/services/token.service.js
 - src/services/user.service.js
 - src/utils/ApiError.js
 - src/utils/catchAsync.js
 - src/utils/dates.js
+- src/utils/mask.js
 - src/utils/money.js
 - src/utils/phone.js
 - src/utils/pick.js
 - src/utils/seedData.js
 - src/utils/seeder.js
+- src/utils/seedGuard.js
 - src/utils/status.js
 - src/utils/subscription.js
+- src/utils/template.js
 - src/utils/today.js
 - src/validations/auth.validation.js
 - src/validations/custom.validation.js
 - src/validations/customer.validation.js
 - src/validations/index.js
 - src/validations/payment.validation.js
+- src/validations/reminder.validation.js
 - src/validations/settings.validation.js
 - src/validations/user.validation.js
 
@@ -161,6 +170,7 @@ BACKEND_IP=localhost #default
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "snapshot": "node snapshot.js backend-contract-snapshot.md src package.json .env.example ecosystem.config.json README.md",
     "seed": "node src/utils/seeder.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -438,6 +448,18 @@ module.exports = Object.freeze({
   REMINDER_CHANNELS: Object.freeze(["email", "whatsapp"]),
   REMINDER_PROVIDERS: Object.freeze(["smtp", "whatsapp_cloud", "mock"]),
   REMINDER_LOG_STATUSES: Object.freeze(["sent", "failed", "skipped"]),
+  REMINDER_STRATEGIES: Object.freeze(["both", "whatsapp_then_email"]),
+  DEFAULT_REMINDER_STRATEGY: "both",
+  MAX_REMINDER_ATTEMPTS: 3,
+  DIGEST_HOUR: 18,
+  // offset = days from today to expiresAt for the customers who get this reminder today
+  REMINDER_TYPE_RULES: Object.freeze([
+    Object.freeze({ type: "d7", flag: "remind7Days", offset: 7 }),
+    Object.freeze({ type: "d3", flag: "remind3Days", offset: 3 }),
+    Object.freeze({ type: "d1", flag: "remind1Day", offset: 1 }),
+    Object.freeze({ type: "expired", flag: "remindExpired", offset: -1 }),
+  ]),
+  REMINDER_WHEN_TEXT: Object.freeze({ d7: "in 7 days", d3: "in 3 days", d1: "tomorrow" }),
   DEFAULT_REMINDER_TEMPLATES: Object.freeze({
     d7: "Hi {firstName}, your TV subscription expires on {date} (7 days left). Please renew to keep your service running. Thank you!",
     d3: "Hi {firstName}, your TV subscription expires on {date} (3 days left). Please renew to keep your service running. Thank you!",
@@ -932,7 +954,9 @@ module.exports.healthController = require('./health.controller');
 module.exports.settingsController = require('./settings.controller');
 module.exports.metaController = require('./meta.controller');
 module.exports.dashboardController = require('./dashboard.controller');
-module.exports.renewalController = require('./renewal.controller');
+module.exports.reminderController = require('./reminder.controller');
+
+// module.exports.renewalController = require('./renewal.controller');
 ````
 
 ## src/controllers/meta.controller.js
@@ -973,30 +997,37 @@ module.exports = {
 };
 ````
 
-## src/controllers/renewal.controller.js
+## src/controllers/reminder.controller.js
 ````js
 const httpStatus = require("http-status");
-const { renewalService } = require("../services");
-const response = require("../config/response");
 const catchAsync = require("../utils/catchAsync");
+const response = require("../config/response");
+const { reminderService } = require("../services");
 
-const createRenewal = catchAsync(async (req, res) => {
-  const data = await renewalService.createRenewal(req.body);
-  res.status(httpStatus.OK).json(
-    response({ message: "Renewal Created Successfully", statusCode: httpStatus.OK, data })
-  );
+const send = (res, message, data) =>
+  res.status(httpStatus.OK).json(response({ message, statusCode: httpStatus.OK, type: "reminder", data }));
+
+const run = catchAsync(async (req, res) => {
+  send(res, "Reminder run", await reminderService.runManually({ dryRun: req.query.dryRun }));
 });
 
-const extendRenewal =  catchAsync(async (req, res) => {
-  const data = await renewalService.extendRenewal(req.body);
-  res.status(httpStatus.OK).json(
-    response({ message: "Renewal Extended Successfully", statusCode: httpStatus.OK, data })
-  );
-}); 
+const digest = catchAsync(async (req, res) => {
+  send(res, "Failure digest", await reminderService.sendDigestManually({ dryRun: req.query.dryRun }));
+});
+
+const listLogs = catchAsync(async (req, res) => {
+  send(res, "Reminder logs", await reminderService.listLogs(req.query));
+});
+
+const listCustomerReminders = catchAsync(async (req, res) => {
+  send(res, "Customer reminders", await reminderService.listCustomerReminders(req.params.id));
+});
 
 module.exports = {
-  createRenewal,
-  extendRenewal
+  run,
+  digest,
+  listLogs,
+  listCustomerReminders,
 };
 ````
 
@@ -1184,6 +1215,7 @@ const mongoose = require("mongoose");
 const app = require("./app");
 const config = require("./config/config");
 const logger = require("./config/logger");
+const jobs = require("./jobs");
 
 let server;
 
@@ -1195,6 +1227,7 @@ mongoose
     logger.info("Connected to MongoDB");
     server = app.listen(...listenArgs, () => {
       logger.info(`Listening on ${config.host}:${config.port}`);
+      jobs.start();
     });
   })
   .catch((error) => {
@@ -1203,6 +1236,7 @@ mongoose
   });
 
 const exitHandler = () => {
+  jobs.stop();
   if (server) {
     server.close(() => {
       logger.info("Server closed");
@@ -1223,12 +1257,72 @@ process.on("unhandledRejection", unexpectedErrorHandler);
 
 process.on("SIGTERM", () => {
   logger.info("SIGTERM received");
+  jobs.stop();
   if (server) {
     server.close(() => process.exit(0));
   } else {
     process.exit(0);
   }
 });
+````
+
+## src/jobs/index.js
+````js
+const reminderJob = require("./reminder.job");
+
+const start = () => {
+  reminderJob.start();
+};
+
+const stop = () => {
+  reminderJob.stop();
+};
+
+module.exports = { start, stop };
+````
+
+## src/jobs/reminder.job.js
+````js
+const cron = require("node-cron");
+const config = require("../config/config");
+const logger = require("../config/logger");
+const reminderService = require("../services/reminder.service");
+
+let task = null;
+
+const tick = async () => {
+  try {
+    await reminderService.runReminders();
+    await reminderService.sendFailureDigest();
+  } catch (error) {
+    // "run already in progress" is normal when a manual run overlaps.
+    logger.warn(`Reminder tick: ${error.message}`);
+  }
+};
+
+const start = () => {
+  if (!config.jobs.enabled || !config.jobs.remindersEnabled) {
+    logger.info("Reminder job is off (JOBS_ENABLED / REMINDERS_ENABLED)");
+    return;
+  }
+  if (config.app.demoMode) {
+    logger.info("Reminder job is off (DEMO_MODE=true)");
+    return;
+  }
+  if (task) return;
+  task = cron.schedule("0 * * * *", tick, { timezone: config.app.timezone });
+  logger.info(`Reminder job scheduled (hourly, ${config.app.timezone})`);
+  tick(); // also run once at startup
+};
+
+const stop = () => {
+  if (task) {
+    task.stop();
+    task = null;
+  }
+};
+
+module.exports = { start, stop };
 ````
 
 ## src/middlewares/auth.js
@@ -1717,6 +1811,8 @@ const mongoose = require("mongoose");
 const { toJSON } = require("./plugins");
 const {
   REMINDER_CHANNELS,
+  REMINDER_STRATEGIES,
+  DEFAULT_REMINDER_STRATEGY,
   DEFAULT_REMINDER_TEMPLATES,
 } = require("../config/business");
 const { isValidMoney } = require("../utils/money");
@@ -1745,6 +1841,11 @@ const settingsSchema = mongoose.Schema(
       type: [{ type: String, enum: [...REMINDER_CHANNELS] }],
       default: () => [...REMINDER_CHANNELS],
     },
+    reminderStrategy: {
+      type: String,
+      enum: [...REMINDER_STRATEGIES],
+      default: DEFAULT_REMINDER_STRATEGY,
+    },
     reminderSendHour: {
       type: Number,
       min: 0,
@@ -1762,6 +1863,8 @@ const settingsSchema = mongoose.Schema(
       expired: template("expired"),
     },
     prices: { m3: price, m6: price, m12: price },
+    failureDigestEnabled: { type: Boolean, default: true },
+    lastDigestOn: { type: Date, default: null }, // internal: date (00:00Z) of the last failure digest, not in the DTO
   },
   { timestamps: true },
 );
@@ -2050,7 +2153,8 @@ const auth = require("../../middlewares/auth");
 const validate = require("../../middlewares/validate");
 const customerValidation = require("../../validations/customer.validation");
 const paymentValidation = require("../../validations/payment.validation");
-const { customerController } = require("../../controllers");
+const reminderValidation = require("../../validations/reminder.validation");
+const { customerController, reminderController } = require("../../controllers");
 
 const router = express.Router();
 
@@ -2292,6 +2396,35 @@ router.put(
 
 /**
  * @swagger
+ * /customers/{id}/reminders:
+ *   get:
+ *     summary: Reminder log of one customer (newest first, max 100)
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       "200":
+ *         description: Returns results (reminder logs)
+ *       "401":
+ *         description: Please authenticate
+ *       "404":
+ *         description: Customer not found
+ */
+router.get(
+  "/:id/reminders",
+  auth("admin"),
+  validate(reminderValidation.getCustomerReminders),
+  reminderController.listCustomerReminders
+);
+
+/**
+ * @swagger
  * /customers/{id}:
  *   get:
  *     summary: Get one customer with renewals and payments
@@ -2458,7 +2591,9 @@ const paymentRoute = require("./payment.route");
 const settingsRoute = require("./settings.route");
 const metaRoute = require("./meta.route");
 const dashboardRoute = require("./dashboard.route");
-const renewalRoute = require("./renewal.route");
+const reminderRoute = require("./reminder.route");
+
+// const renewalRoute = require("./renewal.route");
 
 const router = express.Router();
 
@@ -2471,7 +2606,10 @@ const defaultRoutes = [
   { path: "/settings", route: settingsRoute },
   { path: "/meta", route: metaRoute },
   { path: "/dashboard", route: dashboardRoute },
-  { path: "/renewal", route: renewalRoute },
+  { path: "/reminders", route: reminderRoute },
+
+
+  // { path: "/renewal", route: renewalRoute },
 ];
 
 const devRoutes = [
@@ -2580,21 +2718,115 @@ router.get("/", auth("admin"), validate(paymentValidation.getPayments), paymentC
 module.exports = router;
 ````
 
-## src/routes/v1/renewal.route.js
+## src/routes/v1/reminder.route.js
 ````js
 const express = require("express");
 const auth = require("../../middlewares/auth");
-const { renewalController } = require("../../controllers");
+const validate = require("../../middlewares/validate");
+const reminderValidation = require("../../validations/reminder.validation");
+const { reminderController } = require("../../controllers");
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /reminders/run:
+ *   post:
+ *     summary: Run the reminder engine now (ignores reminderSendHour). Real sending needs REMINDERS_ENABLED=true and DEMO_MODE=false
+ *     tags: [Reminders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: dryRun
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: true = only list what would happen, nothing is sent or saved
+ *     responses:
+ *       "200":
+ *         description: Returns dryRun and items [{ customerId, type, channel, action }]
+ *       "401":
+ *         description: Please authenticate
+ *       "403":
+ *         description: Reminders are disabled (demo mode or REMINDERS_ENABLED=false)
+ *       "409":
+ *         description: A reminder run is already in progress
+ */
+router.post("/run", auth("admin"), validate(reminderValidation.runReminders), reminderController.run);
 
-router
-  .route("/create")
-  .post(auth("admin"), renewalController.createRenewal);
-router
-  .route("/extend-renewal")
-  .patch(auth("admin"), renewalController.extendRenewal);
+/**
+ * @swagger
+ * /reminders/digest:
+ *   post:
+ *     summary: Send the failed-reminders digest to the admin now (ignores the hour and the once-a-day check)
+ *     tags: [Reminders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: dryRun
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *     responses:
+ *       "200":
+ *         description: Returns dryRun, sent, failedCount, reason
+ *       "401":
+ *         description: Please authenticate
+ *       "403":
+ *         description: Reminders are disabled
+ */
+router.post("/digest", auth("admin"), validate(reminderValidation.runReminders), reminderController.digest);
+
+/**
+ * @swagger
+ * /reminders/logs:
+ *   get:
+ *     summary: List reminder logs (paginated, newest first)
+ *     tags: [Reminders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: customerId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [sent, failed, skipped]
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [d7, d3, d1, expired]
+ *       - in: query
+ *         name: channel
+ *         schema:
+ *           type: string
+ *           enum: [email, whatsapp]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *     responses:
+ *       "200":
+ *         description: Returns results, page, limit, totalPages, totalResults
+ *       "400":
+ *         description: Validation error
+ *       "401":
+ *         description: Please authenticate
+ */
+router.get("/logs", auth("admin"), validate(reminderValidation.getLogs), reminderController.listLogs);
 
 module.exports = router;
 ````
@@ -2812,6 +3044,36 @@ module.exports = {
 };
 ````
 
+## src/serializers/reminder.serializer.js
+````js
+const { formatDateOnly } = require("../utils/dates");
+
+/** customerId may be populated with { fullName }. */
+const toReminderLogDto = (log) => {
+  const customer = log.customerId;
+  const hasCustomer = Boolean(customer);
+  return {
+    id: String(log._id || log.id),
+    customerId: hasCustomer ? String(customer._id || customer) : null,
+    customerName: hasCustomer && customer.fullName ? customer.fullName : null,
+    periodEnd: formatDateOnly(log.periodEnd),
+    type: log.type,
+    channel: log.channel,
+    provider: log.provider,
+    status: log.status,
+    attempts: log.attempts,
+    reason: log.reason || null,
+    error: log.error || null,
+    providerMessageId: log.providerMessageId || null,
+    sentAt: log.sentAt ? new Date(log.sentAt).toISOString() : null,
+    to: log.to || null,
+    createdAt: log.createdAt ? new Date(log.createdAt).toISOString() : null,
+  };
+};
+
+module.exports = { toReminderLogDto };
+````
+
 ## src/serializers/settings.serializer.js
 ````js
 const toSettingsDto = (settings) => ({
@@ -2820,6 +3082,7 @@ const toSettingsDto = (settings) => ({
   remind1Day: settings.remind1Day,
   remindExpired: settings.remindExpired,
   reminderChannels: [...settings.reminderChannels],
+  reminderStrategy: settings.reminderStrategy,
   reminderSendHour: settings.reminderSendHour,
   reminderTemplates: {
     d7: settings.reminderTemplates.d7,
@@ -2832,6 +3095,7 @@ const toSettingsDto = (settings) => ({
     m6: settings.prices.m6 ?? null,
     m12: settings.prices.m12 ?? null,
   },
+  failureDigestEnabled: settings.failureDigestEnabled,
 });
 
 module.exports = {
@@ -3286,7 +3550,10 @@ module.exports.paymentService = require('./payment.service');
 module.exports.settingsService = require('./settings.service');
 module.exports.metaService = require('./meta.service');
 module.exports.dashboardService = require('./dashboard.service');
-module.exports.renewalService = require('./renewal.service');
+module.exports.reminderService = require('./reminder.service');
+
+
+// module.exports.renewalService = require('./renewal.service');
 ````
 
 ## src/services/meta.service.js
@@ -3420,98 +3687,446 @@ module.exports = {
 };
 ````
 
-## src/services/renewal.service.js
+## src/services/reminder.service.js
 ````js
 const httpStatus = require("http-status");
-const { Customer, Renewal } = require("../models");
+const config = require("../config/config");
+const logger = require("../config/logger");
 const ApiError = require("../utils/ApiError");
-const { calcExpiry } = require("../utils/subscription");
-const { parseDateOnly } = require("../utils/dates");
-const { getToday } = require("../utils/today");
+const { maskPhone } = require("../utils/phone");
+const { maskEmail } = require("../utils/mask");
+const { addDays } = require("../utils/dates");
+const { getToday, getNowInZone } = require("../utils/today");
+const { getFirstName, formatMessageDate, renderTemplate } = require("../utils/template");
+const { shouldForceMock } = require("../utils/seedGuard");
+const { Customer, ReminderLog, User } = require("../models");
+const {
+  MAX_REMINDER_ATTEMPTS,
+  DIGEST_HOUR,
+  REMINDER_TYPE_RULES,
+  REMINDER_WHEN_TEXT,
+} = require("../config/business");
+const { toReminderLogDto } = require("../serializers/reminder.serializer");
+const settingsService = require("./settings.service");
+const emailProvider = require("./reminder/providers/email.provider");
+const whatsappProvider = require("./reminder/providers/whatsapp.provider");
 
-const createRenewal = async (renewalBody) => {
-  const today = getToday()
-  const periodStart = renewalBody.periodStart
-    ? parseDateOnly(renewalBody.periodStart)
-    : today;
-  const expiresAt = calcExpiry(periodStart, renewalBody.durationMonths);
+const PROVIDERS = { email: emailProvider, whatsapp: whatsappProvider };
+const CHANNEL_ORDER = ["whatsapp", "email"];
 
-  try {
-    const customer = await Customer.findById(renewalBody.customerId);
-    if (!customer) {
-      throw new ApiError(httpStatus.NOT_FOUND, "Customer not found");
-    }
+let busy = false;
 
-    const renewal = await Renewal.create({
-      customerId: customer._id,
-      type: "initial",
-      periodStart,
-      periodEnd: expiresAt,
-      durationMonths: renewalBody.durationMonths,
-    });
+/* ----------------------------- helpers ----------------------------- */
 
-    return renewal
-    
-  } catch (error) {
+const maskTarget = (customer, channel) =>
+  channel === "email" ? maskEmail(customer.email) : maskPhone(customer.phone);
 
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Can't customer renewal");
-
-  }
-
+const buildContent = (customer, type, settings) => {
+  const firstName = getFirstName(customer.fullName);
+  const date = formatMessageDate(customer.expiresAt);
+  const message = renderTemplate(settings.reminderTemplates[type], { firstName, date });
+  const params = type === "expired" ? [firstName, date] : [firstName, date, REMINDER_WHEN_TEXT[type]];
+  return { message, params };
 };
 
-const extendRenewal = async (extendRenewalBody) => {
-  const {customerId, durationMonths} = extendRenewalBody
-  const customer = await Customer.findById(customerId);
-
-  const expiresAt = customer.expiresAt
-  const oldExpiry = expiresAt
-
-  const newExpiry = calcExpiry(oldExpiry, durationMonths);
-
-
+/** Upsert on the unique key { customerId, periodEnd, type, channel }. */
+const saveLog = async (customer, type, channel, fields, countAttempt) => {
+  const filter = { customerId: customer._id, periodEnd: customer.expiresAt, type, channel };
+  const update = { $set: fields };
+  if (countAttempt) update.$inc = { attempts: 1 };
+  else update.$setOnInsert = { attempts: 0 };
+  const options = { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true };
   try {
-    const updated = await Customer.findOneAndUpdate(
-      { _id: customer._id },
-      {
-        $set: {
-          startDate: oldExpiry,
-          durationMonths,
-          expiresAt: newExpiry,
+    return await ReminderLog.findOneAndUpdate(filter, update, options);
+  } catch (error) {
+    if (!error || error.code !== 11000) throw error;
+    return ReminderLog.findOneAndUpdate(filter, update, options);
+  }
+};
+
+/** Can this channel still be tried? sent and skipped are final, failed retries up to the limit. */
+const canTry = (log) => !log || (log.status === "failed" && log.attempts < MAX_REMINDER_ATTEMPTS);
+
+const deliver = async (customer, type, channel, settings) => {
+  const { message, params } = buildContent(customer, type, settings);
+  const result = await PROVIDERS[channel].send({
+    customer,
+    type,
+    message,
+    params,
+    forceMock: shouldForceMock(customer),
+  });
+  await saveLog(
+    customer,
+    type,
+    channel,
+    {
+      provider: result.provider,
+      status: result.status,
+      reason: null,
+      error: result.error ? String(result.error).slice(0, 300) : null,
+      providerMessageId: result.providerMessageId || null,
+      sentAt: result.status === "sent" ? new Date() : null,
+      to: maskTarget(customer, channel),
+    },
+    true
+  );
+  return result;
+};
+
+/** One channel for one customer. Returns the send result, or null when nothing was tried. */
+const attempt = async (ctx, channel, { fallback = false } = {}) => {
+  const { customer, type, settings, dryRun, items } = ctx;
+  const log = ctx.logOf(channel);
+  if (!canTry(log)) return null;
+
+  const item = (action) => items.push({ customerId: String(customer._id), type, channel, action });
+
+  if (channel === "email" && !customer.email) {
+    if (!dryRun) {
+      await saveLog(
+        customer,
+        type,
+        channel,
+        {
+          provider: emailProvider.getProviderName(shouldForceMock(customer)),
+          status: "skipped",
+          reason: "no_email",
+          error: null,
+          to: null,
         },
-      },
-      { new: true },
-    );
-    
-    if (!updated) {
-      throw new ApiError(httpStatus.CONFLICT, SUBSCRIPTION_CHANGED);
+        false
+      );
     }
-
-    return updated;
-
-  } catch (error) {
-    
+    item(dryRun ? "would_skip_no_email" : "skipped_no_email");
+    return { status: "skipped" };
   }
 
-  let renewal;
+  if (dryRun) {
+    const retry = Boolean(log && log.attempts > 0);
+    item(fallback ? "would_send_if_whatsapp_fails" : retry ? "would_retry" : "would_send");
+    return { status: "planned" };
+  }
+
+  const result = await deliver(customer, type, channel, settings);
+  item(result.status === "sent" ? "sent" : "failed");
+  return result;
+};
+
+/** whatsapp_then_email: email only when WhatsApp did not deliver. */
+const runFallback = async (ctx) => {
+  const whatsappLog = ctx.logOf("whatsapp");
+  const emailLog = ctx.logOf("email");
+  if ((whatsappLog && whatsappLog.status === "sent") || (emailLog && emailLog.status === "sent")) return;
+
+  const whatsappResult = await attempt(ctx, "whatsapp");
+  if (ctx.dryRun) {
+    await attempt(ctx, "email", { fallback: whatsappResult !== null });
+    return;
+  }
+  if (whatsappResult && whatsappResult.status === "sent") return;
+
+  const emailResult = await attempt(ctx, "email");
+  if (emailResult && emailResult.status === "sent") {
+    await ReminderLog.updateOne(
+      { customerId: ctx.customer._id, periodEnd: ctx.customer.expiresAt, type: ctx.type, channel: "whatsapp", status: "failed" },
+      { $set: { reason: "fallback_sent" } }
+    );
+  }
+};
+
+const processCustomer = async ({ customer, type, settings, dryRun, items }) => {
+  const channels = CHANNEL_ORDER.filter((channel) => settings.reminderChannels.includes(channel));
+  if (channels.length === 0) return;
+
+  const logs = await ReminderLog.find({ customerId: customer._id, periodEnd: customer.expiresAt, type }).lean();
+  const ctx = {
+    customer,
+    type,
+    settings,
+    dryRun,
+    items,
+    logOf: (channel) => logs.find((log) => log.channel === channel) || null,
+  };
+
+  if (settings.reminderStrategy === "whatsapp_then_email" && channels.length === 2) {
+    await runFallback(ctx);
+    return;
+  }
+  for (const channel of channels) {
+    await attempt(ctx, channel);
+  }
+};
+
+/* ------------------------------ engine ------------------------------ */
+
+const doRun = async ({ dryRun, ignoreSendHour }) => {
+  const settings = await settingsService.getSettings();
+  const now = getNowInZone();
+  if (!ignoreSendHour && now.hour < settings.reminderSendHour) {
+    return { dryRun, items: [] };
+  }
+
+  const today = getToday();
+  const items = [];
+  const targets = REMINDER_TYPE_RULES.filter((rule) => settings[rule.flag]).map((rule) => ({
+    type: rule.type,
+    date: addDays(today, rule.offset),
+  }));
+
+  for (const target of targets) {
+    const customers = await Customer.find({ expiresAt: target.date, remindersEnabled: true })
+      .sort({ _id: 1 })
+      .lean();
+    for (const customer of customers) {
+      try {
+        await processCustomer({ customer, type: target.type, settings, dryRun, items });
+      } catch (error) {
+        // One bad customer never stops the loop.
+        logger.error(`Reminder ${target.type} failed for ${maskPhone(customer.phone)}: ${error.message}`);
+      }
+    }
+  }
+  return { dryRun, items };
+};
+
+/** Shared by the cron job and the manual endpoint. One run at a time. */
+const runReminders = async ({ dryRun = false, ignoreSendHour = false } = {}) => {
+  if (busy) throw new ApiError(httpStatus.CONFLICT, "A reminder run is already in progress");
+  busy = true;
   try {
-    renewal = await Renewal.create({
-      customerId: customer._id,
-      type: "renewal",
-      periodStart: oldExpiry,
-      periodEnd: newExpiry,
-      durationMonths,
-    });
-  } catch (error) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, error.message)
+    return await doRun({ dryRun, ignoreSendHour });
+  } finally {
+    busy = false;
+  }
+};
+
+const assertCanSend = () => {
+  if (config.app.demoMode) {
+    throw new ApiError(httpStatus.FORBIDDEN, "Reminders are disabled in demo mode");
+  }
+  if (!config.jobs.remindersEnabled) {
+    throw new ApiError(httpStatus.FORBIDDEN, "Reminders are disabled. Set REMINDERS_ENABLED=true");
+  }
+};
+
+/** POST /reminders/run. Ignores reminderSendHour. dryRun never sends or writes. */
+const runManually = async ({ dryRun }) => {
+  if (!dryRun) assertCanSend();
+  return runReminders({ dryRun, ignoreSendHour: true });
+};
+
+/* ------------------------------ digest ------------------------------ */
+
+/** Daily email to the admin with the reminders that gave up today (attempts used up, no fallback). */
+const sendFailureDigest = async ({ dryRun = false, force = false } = {}) => {
+  const result = (extra) => ({ dryRun, sent: false, failedCount: 0, ...extra });
+  if (config.app.demoMode) return result({ reason: "demo_mode" });
+
+  const settings = await settingsService.getSettingsDoc();
+  if (!force) {
+    if (!settings.failureDigestEnabled) return result({ reason: "disabled" });
+    if (getNowInZone().hour < DIGEST_HOUR) return result({ reason: "before_digest_hour" });
+    const today = getToday();
+    if (settings.lastDigestOn && settings.lastDigestOn.getTime() === today.getTime()) {
+      return result({ reason: "already_sent_today" });
+    }
   }
 
+  const since = getNowInZone().startOf("day").toJSDate();
+  const failed = await ReminderLog.find({
+    status: "failed",
+    attempts: { $gte: MAX_REMINDER_ATTEMPTS },
+    reason: { $ne: "fallback_sent" },
+    updatedAt: { $gte: since },
+  })
+    .sort({ updatedAt: 1 })
+    .limit(100)
+    .populate("customerId", "fullName")
+    .lean();
+
+  if (failed.length === 0) return result({ reason: "nothing_to_report" });
+  if (dryRun) return result({ failedCount: failed.length, reason: "dry_run" });
+
+  const admin = await User.findOne({ role: "admin", isDeleted: false }).sort({ createdAt: 1 });
+  if (!admin || !admin.email) return result({ failedCount: failed.length, reason: "no_admin_email" });
+
+  const lines = failed.map((log) => {
+    const name = log.customerId && log.customerId.fullName ? log.customerId.fullName : "Unknown";
+    return `- ${name} | ${log.channel} | ${log.type} | to ${log.to || "-"} | ${log.error || "unknown error"}`;
+  });
+  const text = [
+    `${failed.length} reminder(s) could not be delivered today after ${MAX_REMINDER_ATTEMPTS} attempts:`,
+    "",
+    ...lines,
+    "",
+    "Contact these customers manually.",
+  ].join("\n");
+
+  const sendResult = await emailProvider.sendMail({
+    to: admin.email,
+    subject: `Reminder failures: ${failed.length} not delivered`,
+    text,
+    forceMock: Boolean(config.app.mockToday),
+  });
+  if (sendResult.status === "sent") await settingsService.markDigestSent(getToday());
+  return { dryRun, sent: sendResult.status === "sent", failedCount: failed.length, reason: sendResult.error || null };
+};
+
+/** POST /reminders/digest. Ignores the hour and the once-a-day check. */
+const sendDigestManually = async ({ dryRun }) => {
+  if (!dryRun) assertCanSend();
+  return sendFailureDigest({ dryRun, force: true });
+};
+
+/* ------------------------------- logs ------------------------------- */
+
+const listLogs = async ({ customerId, status, type, channel, page, limit }) => {
+  const filter = {};
+  if (customerId) filter.customerId = customerId;
+  if (status) filter.status = status;
+  if (type) filter.type = type;
+  if (channel) filter.channel = channel;
+
+  const result = await ReminderLog.paginate(filter, {
+    sortBy: "createdAt:desc,_id:desc",
+    page,
+    limit,
+    populate: "customerId fullName",
+  });
+  return { ...result, results: result.results.map(toReminderLogDto) };
+};
+
+const listCustomerReminders = async (customerId) => {
+  if (!(await Customer.exists({ _id: customerId }))) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Customer not found");
+  }
+  const logs = await ReminderLog.find({ customerId }).sort({ createdAt: -1, _id: -1 }).limit(100).lean();
+  return { results: logs.map(toReminderLogDto) };
 };
 
 module.exports = {
-  createRenewal,
-  extendRenewal
+  runReminders,
+  runManually,
+  sendFailureDigest,
+  sendDigestManually,
+  listLogs,
+  listCustomerReminders,
 };
+````
+
+## src/services/reminder/providers/email.provider.js
+````js
+const nodemailer = require("nodemailer");
+const config = require("../../../config/config");
+const logger = require("../../../config/logger");
+const { maskEmail } = require("../../../utils/mask");
+
+const SUBJECTS = {
+  d7: "Your TV subscription expires soon",
+  d3: "Your TV subscription expires soon",
+  d1: "Your TV subscription expires soon",
+  expired: "Your TV subscription has expired",
+};
+
+let transporter = null;
+
+const isSmtp = (forceMock) => config.email.provider === "smtp" && !forceMock;
+
+const getProviderName = (forceMock = false) => (isSmtp(forceMock) ? "smtp" : "mock");
+
+const getTransporter = () => {
+  if (!transporter) {
+    const { host, port, auth } = config.email.smtp;
+    transporter = nodemailer.createTransport({
+      host,
+      port: Number(port),
+      secure: Number(port) === 465,
+      ...(auth.user && auth.pass ? { auth } : {}),
+    });
+  }
+  return transporter;
+};
+
+/** Never throws. Returns { status, provider, providerMessageId, error }. */
+const sendMail = async ({ to, subject, text, forceMock = false }) => {
+  if (!isSmtp(forceMock)) {
+    logger.info(`[mock email] to=${maskEmail(to)} subject="${subject}"`);
+    // Test hook (mock only): an address starting with "fail@" fails.
+    if (String(to).toLowerCase().startsWith("fail@")) {
+      return { status: "failed", provider: "mock", providerMessageId: null, error: "Mock email failure" };
+    }
+    return { status: "sent", provider: "mock", providerMessageId: `mock-email-${Date.now()}`, error: null };
+  }
+  try {
+    const info = await getTransporter().sendMail({ from: config.email.from, to, subject, text });
+    return { status: "sent", provider: "smtp", providerMessageId: info.messageId || null, error: null };
+  } catch (error) {
+    logger.error(`Email send failed to ${maskEmail(to)}: ${error.message}`);
+    return { status: "failed", provider: "smtp", providerMessageId: null, error: error.message };
+  }
+};
+
+const send = ({ customer, type, message, forceMock = false }) =>
+  sendMail({ to: customer.email, subject: SUBJECTS[type], text: message, forceMock });
+
+module.exports = { send, sendMail, getProviderName };
+````
+
+## src/services/reminder/providers/whatsapp.provider.js
+````js
+const axios = require("axios");
+const config = require("../../../config/config");
+const logger = require("../../../config/logger");
+const { maskPhone } = require("../../../utils/phone");
+
+const isCloud = (forceMock) => config.whatsapp.provider === "cloud" && !forceMock;
+
+const getProviderName = (forceMock = false) => (isCloud(forceMock) ? "whatsapp_cloud" : "mock");
+
+const failed = (provider, error) => ({ status: "failed", provider, providerMessageId: null, error });
+
+/** Never throws. params = [firstName, expiryDate, whenText?]. Returns { status, provider, providerMessageId, error }. */
+const send = async ({ customer, type, params, forceMock = false }) => {
+  if (!isCloud(forceMock)) {
+    logger.info(`[mock whatsapp] type=${type} to=${maskPhone(customer.phone)}`);
+    // Test hook (mock only): a phone ending in 0000 fails.
+    if (String(customer.phone).endsWith("0000")) return failed("mock", "Mock WhatsApp failure");
+    return { status: "sent", provider: "mock", providerMessageId: `mock-wa-${Date.now()}`, error: null };
+  }
+
+  const templateName = type === "expired" ? config.whatsapp.templateNameExpired : config.whatsapp.templateName;
+  if (!templateName) return failed("whatsapp_cloud", `WhatsApp template name is not configured for ${type}`);
+
+  const { phoneNumberId, apiVersion, token, templateLang } = config.whatsapp;
+  const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
+  const body = {
+    messaging_product: "whatsapp",
+    to: String(customer.phone).replace(/\D/g, ""),
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: templateLang },
+      components: [{ type: "body", parameters: params.map((text) => ({ type: "text", text: String(text) })) }],
+    },
+  };
+
+  try {
+    const response = await axios.post(url, body, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      timeout: 10000,
+    });
+    const id = response.data && response.data.messages && response.data.messages[0] && response.data.messages[0].id;
+    return { status: "sent", provider: "whatsapp_cloud", providerMessageId: id || null, error: null };
+  } catch (error) {
+    const apiMessage = error.response && error.response.data && error.response.data.error && error.response.data.error.message;
+    const message = apiMessage || (error.response ? `WhatsApp request failed (${error.response.status})` : "WhatsApp request failed");
+    logger.error(`WhatsApp send failed to ${maskPhone(customer.phone)}: ${message}`);
+    return failed("whatsapp_cloud", message);
+  }
+};
+
+module.exports = { send, getProviderName };
 ````
 
 ## src/services/settings.service.js
@@ -3561,9 +4176,16 @@ const updateSettings = async (body) => {
   return toSettingsDto(updated);
 };
 
+/** Internal: remember the day (Date at 00:00Z) the failure digest was sent. */
+const markDigestSent = async (day) => {
+  await Settings.updateOne({ key: SETTINGS_KEY }, { $set: { lastDigestOn: day } });
+};
+
 module.exports = {
   getSettings,
+  getSettingsDoc,
   updateSettings,
+  markDigestSent,
 };
 ````
 
@@ -3753,6 +4375,18 @@ module.exports = {
   isValidDateOnly,
   startOfMonth,
 };
+````
+
+## src/utils/mask.js
+````js
+/** "john@email.com" -> "j***@email.com" (for logs and ReminderLog.to). */
+const maskEmail = (email) => {
+  if (!email || !String(email).includes("@")) return "";
+  const [local, domain] = String(email).split("@");
+  return `${local.slice(0, 1)}***@${domain}`;
+};
+
+module.exports = { maskEmail };
 ````
 
 ## src/utils/money.js
@@ -4031,6 +4665,23 @@ run().catch((error) => {
 });
 ````
 
+## src/utils/seedGuard.js
+````js
+const config = require("../config/config");
+
+const SEED_PHONE_RE = /^\+88017000000\d{2}$/;
+const SEED_EMAIL_SUFFIX = "@email.com";
+
+/** Seeded / demo contacts (seedData.js). */
+const isSeedContact = (customer) =>
+  SEED_PHONE_RE.test(customer.phone || "") || String(customer.email || "").endsWith(SEED_EMAIL_SUFFIX);
+
+/** Real providers are never used for seed contacts, or while MOCK_TODAY is set (dev). */
+const shouldForceMock = (customer) => Boolean(config.app.mockToday) || isSeedContact(customer);
+
+module.exports = { isSeedContact, shouldForceMock };
+````
+
 ## src/utils/status.js
 ````js
 const { EXPIRING_WINDOW_DAYS } = require("../config/business");
@@ -4086,6 +4737,26 @@ module.exports = {
   getRenewalBase,
   calcExpiry,
 };
+````
+
+## src/utils/template.js
+````js
+const { DateTime } = require("luxon");
+
+/** First word of the full name. */
+const getFirstName = (fullName) => String(fullName || "").trim().split(/\s+/)[0] || "";
+
+/** Date (00:00Z) -> "Oct 8, 2026". */
+const formatMessageDate = (date) =>
+  DateTime.fromJSDate(date, { zone: "utc" }).setLocale("en-US").toFormat("LLL d, yyyy");
+
+/** Fills {firstName} and {date}. Function replacers keep "$" in names safe. */
+const renderTemplate = (template, { firstName, date }) =>
+  String(template)
+    .replace(/\{firstName\}/g, () => firstName)
+    .replace(/\{date\}/g, () => date);
+
+module.exports = { getFirstName, formatMessageDate, renderTemplate };
 ````
 
 ## src/utils/today.js
@@ -4289,6 +4960,7 @@ module.exports.userValidation = require("./user.validation");
 module.exports.customerValidation = require("./customer.validation");
 module.exports.paymentValidation = require("./payment.validation");
 module.exports.settingsValidation = require("./settings.validation");
+module.exports.reminderValidation = require("./reminder.validation");
 ````
 
 ## src/validations/payment.validation.js
@@ -4335,11 +5007,47 @@ module.exports = {
 };
 ````
 
+## src/validations/reminder.validation.js
+````js
+const Joi = require("joi");
+const { objectId } = require("./custom.validation");
+const { REMINDER_TYPES, REMINDER_CHANNELS, REMINDER_LOG_STATUSES } = require("../config/business");
+
+const runReminders = {
+  query: Joi.object().keys({
+    dryRun: Joi.boolean().default(false),
+  }),
+};
+
+const getLogs = {
+  query: Joi.object().keys({
+    customerId: Joi.string().custom(objectId),
+    status: Joi.string().valid(...REMINDER_LOG_STATUSES),
+    type: Joi.string().valid(...REMINDER_TYPES),
+    channel: Joi.string().valid(...REMINDER_CHANNELS),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+  }),
+};
+
+const getCustomerReminders = {
+  params: Joi.object().keys({
+    id: Joi.string().custom(objectId).required(),
+  }),
+};
+
+module.exports = {
+  runReminders,
+  getLogs,
+  getCustomerReminders,
+};
+````
+
 ## src/validations/settings.validation.js
 ````js
 const Joi = require("joi");
 const { money } = require("./custom.validation");
-const { REMINDER_CHANNELS } = require("../config/business");
+const { REMINDER_CHANNELS, REMINDER_STRATEGIES } = require("../config/business");
 
 const ALLOWED_PLACEHOLDERS = ["firstName", "date"];
 
@@ -4366,11 +5074,13 @@ const updateSettings = {
       reminderChannels: Joi.array()
         .items(Joi.string().valid(...REMINDER_CHANNELS))
         .unique(),
+      reminderStrategy: Joi.string().valid(...REMINDER_STRATEGIES),
       reminderSendHour: Joi.number().integer().min(0).max(23),
       reminderTemplates: Joi.object()
         .keys({ d7: template, d3: template, d1: template, expired: template })
         .min(1),
       prices: Joi.object().keys({ m3: price, m6: price, m12: price }).min(1),
+      failureDigestEnabled: Joi.boolean(),
     })
     .min(1),
 };

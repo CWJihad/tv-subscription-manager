@@ -4,6 +4,7 @@ const toSettingsDto = (settings) => ({
   remind1Day: settings.remind1Day,
   remindExpired: settings.remindExpired,
   reminderChannels: [...settings.reminderChannels],
+  reminderStrategy: settings.reminderStrategy,
   reminderSendHour: settings.reminderSendHour,
   reminderTemplates: {
     d7: settings.reminderTemplates.d7,
@@ -16,6 +17,7 @@ const toSettingsDto = (settings) => ({
     m6: settings.prices.m6 ?? null,
     m12: settings.prices.m12 ?? null,
   },
+  failureDigestEnabled: settings.failureDigestEnabled,
 });
 
 module.exports = {

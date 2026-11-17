@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const { toJSON } = require("./plugins");
 const {
   REMINDER_CHANNELS,
+  REMINDER_STRATEGIES,
+  DEFAULT_REMINDER_STRATEGY,
   DEFAULT_REMINDER_TEMPLATES,
 } = require("../config/business");
 const { isValidMoney } = require("../utils/money");
@@ -30,6 +32,11 @@ const settingsSchema = mongoose.Schema(
       type: [{ type: String, enum: [...REMINDER_CHANNELS] }],
       default: () => [...REMINDER_CHANNELS],
     },
+    reminderStrategy: {
+      type: String,
+      enum: [...REMINDER_STRATEGIES],
+      default: DEFAULT_REMINDER_STRATEGY,
+    },
     reminderSendHour: {
       type: Number,
       min: 0,
@@ -47,6 +54,8 @@ const settingsSchema = mongoose.Schema(
       expired: template("expired"),
     },
     prices: { m3: price, m6: price, m12: price },
+    failureDigestEnabled: { type: Boolean, default: true },
+    lastDigestOn: { type: Date, default: null }, // internal: date (00:00Z) of the last failure digest, not in the DTO
   },
   { timestamps: true },
 );
