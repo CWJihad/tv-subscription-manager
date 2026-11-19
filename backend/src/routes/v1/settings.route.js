@@ -44,6 +44,10 @@ const router = express.Router();
  *                 items:
  *                   type: string
  *                   enum: [email, whatsapp]
+ *               reminderStrategy:
+ *                 type: string
+ *                 enum: [both, whatsapp_then_email]
+ *                 description: both = send on every selected channel. whatsapp_then_email = email only if WhatsApp fails
  *               reminderSendHour:
  *                 type: integer
  *                 minimum: 0
@@ -54,6 +58,9 @@ const router = express.Router();
  *               prices:
  *                 type: object
  *                 description: m3, m6, m12 (number or null)
+ *               failureDigestEnabled:
+ *                 type: boolean
+ *                 description: Daily email to the admin with reminders that could not be delivered
  *     responses:
  *       "200":
  *         description: Returns the updated settings

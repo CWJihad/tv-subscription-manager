@@ -2,22 +2,19 @@ components:
   schemas:
     User:
       type: object
+      description: The logged-in admin (GET /users/self/in, PATCH /users/self/update)
       properties:
         id:
+          type: string
+        fullName:
           type: string
         email:
           type: string
           format: email
-        name:
-          type: string
-        role:
-          type: string
-          enum: [user, admin]
       example:
         id: 5ebac534954b54139806c112
-        email: fake@example.com
-        name: fake name
-        role: user
+        fullName: Alex Owner
+        email: owner@email.com
 
     Token:
       type: object

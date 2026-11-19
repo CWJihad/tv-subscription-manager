@@ -9,9 +9,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "snapshot": "node snapshot.js backend-contract-snapshot.md src package.json .env.example ecosystem.config.json README.md",
+    "snapshot": "node snapshot.js backend-contract-snapshot.md src package.json .env.example ecosystem.config.json README.md tests",
     "seed": "node src/utils/seeder.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "author": "Md. Jihad Khan",
   "license": "ISC",
