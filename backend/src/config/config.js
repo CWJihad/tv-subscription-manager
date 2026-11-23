@@ -31,6 +31,8 @@ const envVarsSchema = Joi.object()
     JOBS_ENABLED: Joi.boolean().default(false),
     REMINDERS_ENABLED: Joi.boolean().default(false),
     DEMO_MODE: Joi.boolean().default(false),
+    DEMO_RESEED_HOUR: Joi.number().integer().min(0).max(23).default(3).description("demo only: hour of the nightly reseed"),
+    DEMO_MAX_CUSTOMERS: Joi.number().integer().min(30).max(1000).default(100).description("demo only: customer cap"),
 
     EMAIL_PROVIDER: Joi.string().valid("mock", "smtp").default("mock"),
     SMTP_HOST: optionalString,
@@ -61,6 +63,11 @@ if (error) {
 
 if (envVars.NODE_ENV === "production" && envVars.MOCK_TODAY) {
   throw new Error("Config validation error: MOCK_TODAY must not be set in production");
+}
+
+// A demo never talks to real providers (D13, D15).
+if (envVars.DEMO_MODE && (envVars.EMAIL_PROVIDER === "smtp" || envVars.WHATSAPP_PROVIDER === "cloud")) {
+  throw new Error("Config validation error: DEMO_MODE=true needs EMAIL_PROVIDER=mock and WHATSAPP_PROVIDER=mock");
 }
 
 if (envVars.EMAIL_PROVIDER === "smtp" && !(envVars.SMTP_HOST && envVars.SMTP_PORT && envVars.EMAIL_FROM)) {
@@ -99,6 +106,8 @@ module.exports = {
     timezone: envVars.APP_TIMEZONE,
     mockToday: envVars.MOCK_TODAY || null,
     demoMode: envVars.DEMO_MODE,
+    demoReseedHour: envVars.DEMO_RESEED_HOUR,
+    demoMaxCustomers: envVars.DEMO_MAX_CUSTOMERS,
   },
   jobs: {
     enabled: envVars.JOBS_ENABLED,

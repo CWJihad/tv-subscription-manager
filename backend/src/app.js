@@ -9,6 +9,7 @@ const config = require("./config/config");
 const morgan = require("./config/morgan");
 const { jwtStrategy } = require("./config/passport");
 const { authLimiter, apiLimiter } = require("./middlewares/rateLimiter");
+const { demoGuard } = require("./middlewares/demo");
 const routes = require("./routes/v1");
 const { errorConverter, errorHandler } = require("./middlewares/error");
 const ApiError = require("./utils/ApiError");
@@ -57,6 +58,11 @@ passport.use("jwt", jwtStrategy);
 if (config.env !== "test") {
   app.use("/api/v1/auth/login", authLimiter);
   app.use("/api/v1", apiLimiter);
+}
+
+// demo deployment only: no password/account changes, customer cap
+if (config.app.demoMode) {
+  app.use("/api/v1", demoGuard);
 }
 
 // v1 api routes

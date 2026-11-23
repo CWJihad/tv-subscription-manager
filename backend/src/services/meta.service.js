@@ -8,6 +8,7 @@ const getMeta = () => ({
   timezone: config.app.timezone,
   currency: CURRENCY,
   expiringWindowDays: EXPIRING_WINDOW_DAYS,
+  demoMode: config.app.demoMode,
 });
 
 module.exports = {

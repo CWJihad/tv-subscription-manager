@@ -14,7 +14,7 @@ const router = express.Router();
  *       - bearerAuth: []
  *     responses:
  *       "200":
- *         description: Returns today, timezone, currency, expiringWindowDays
+ *         description: Returns today, timezone, currency, expiringWindowDays, demoMode
  *       "401":
  *         description: Please authenticate
  */

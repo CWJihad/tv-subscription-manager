@@ -1,5 +1,9 @@
 const rateLimit = require("express-rate-limit");
 const httpStatus = require("http-status");
+const config = require("../config/config");
+
+// The public demo gets stricter limits.
+const demo = config.app.demoMode;
 
 const tooManyRequests = (req, res) =>
   res.status(httpStatus.TOO_MANY_REQUESTS).json({
@@ -10,7 +14,7 @@ const tooManyRequests = (req, res) =>
 // Login: only failed attempts count.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: demo ? 10 : 20,
   skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
@@ -20,7 +24,7 @@ const authLimiter = rateLimit({
 // General API limit per IP.
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 600,
+  max: demo ? 200 : 600,
   standardHeaders: true,
   legacyHeaders: false,
   handler: tooManyRequests,

@@ -40,6 +40,7 @@ const userSchema = mongoose.Schema(
     },
     role: {
       type: String,
+      default: "admin"
       // enum: roles.admin[1], // right now we don't need it cause current we have just one role
     },
     oneTimeCode: {

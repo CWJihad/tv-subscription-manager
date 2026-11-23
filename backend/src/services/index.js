@@ -7,6 +7,7 @@ module.exports.settingsService = require('./settings.service');
 module.exports.metaService = require('./meta.service');
 module.exports.dashboardService = require('./dashboard.service');
 module.exports.reminderService = require('./reminder.service');
+module.exports.seedService = require('./seed.service');
 
 
 // module.exports.renewalService = require('./renewal.service');
