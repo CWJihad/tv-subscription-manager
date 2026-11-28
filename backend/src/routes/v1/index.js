@@ -26,7 +26,6 @@ const defaultRoutes = [
   { path: "/dashboard", route: dashboardRoute },
   { path: "/reminders", route: reminderRoute },
 
-
   // { path: "/renewal", route: renewalRoute },
 ];
 

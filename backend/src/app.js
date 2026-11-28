@@ -67,6 +67,9 @@ if (config.app.demoMode) {
 
 // v1 api routes
 app.use("/api/v1", routes);
+app.use("/", (req, res) => {
+  res.send("Server is running..........\nPlease use /api/v1 for API requests.");
+});
 
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {
